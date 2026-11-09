@@ -1,0 +1,2933 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Simulateur autonome de bandes de progression de vol électroniques.">
+<title>E-Strips · Poste de contrôle aérien</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#10161e; --panel:#151e28; --raised:#1a2632; --strip:#202d3a;
+  --edge:#344353; --line:#293747; --text:#ecf2f8; --muted:#a3b3c4;
+  --faint:#8296aa; --cyan:#83e0ec; --green:#8ce0b0; --amber:#ffce84; --red:#ff9e93;
+  --ifr:#83d7f3; --vfr:#9ee0a7; --helico:#ffcc80; --militaire:#cfadff;
+  --selected:#e6f4ff; --attention:#ff9b8d;
+  --mono:"Cascadia Mono","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  font-family:"Segoe UI",system-ui,sans-serif; font-size:14px;
+}
+* { box-sizing:border-box }
+[hidden] { display:none !important }
+body { margin:0; color:var(--text); background:var(--bg); min-width:300px }
+button,input,select,textarea { font:inherit; color:inherit }
+button { cursor:pointer }
+button:disabled { opacity:.42; cursor:default }
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:2px solid var(--cyan); outline-offset:2px }
+a { color:var(--cyan) }
+h1,h2,h3,p { margin:0 }
+.mono { font-family:var(--mono); font-variant-numeric:tabular-nums }
+.muted { color:var(--muted) }
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap }
+.icon { width:16px; height:16px; flex:none; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
+.top { background:#141d27; border-bottom:1px solid var(--edge); display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px }
+.brand { display:flex; align-items:center; gap:12px }
+.brand-icon { display:grid; place-items:center; background:#182e39; border:1px solid #345660; color:var(--cyan); width:40px; height:40px; border-radius:5px; flex:none }
+.brand-icon .icon { width:23px; height:23px }
+.brand small,.eyebrow { color:var(--faint); font:700 10px var(--mono); letter-spacing:.13em; text-transform:uppercase }
+.brand h1 { font:700 clamp(13px,1.33vw,20px) var(--mono); letter-spacing:.025em; margin-top:4px }
+.top-right,.actions,.legend,.inline { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+.clock { display:grid; grid-template-columns:auto auto; column-gap:12px; text-align:right; border-left:1px solid var(--edge); padding-left:16px; margin-left:7px; white-space:nowrap }
+.clock > div + div { border-left:1px solid var(--edge); padding-left:12px }
+.clock-label { display:block; font:700 10px var(--mono); color:var(--muted); letter-spacing:.08em }
+.clock time { display:block; font:700 22px var(--mono); color:var(--cyan) }
+.clock small { font:11px var(--mono); color:var(--muted) }
+.btn { display:inline-flex; justify-content:center; align-items:center; gap:7px; min-height:34px; padding:6px 10px; border:1px solid var(--edge); border-radius:4px; background:#202d3a; color:var(--text); font:650 11px var(--mono); text-decoration:none; white-space:nowrap }
+.btn:hover:not(:disabled) { background:#2b3d4d; border-color:#567084 }
+.btn.primary { background:#8ee1eb; color:#122530; border-color:#8ee1eb }
+.btn.primary:hover { background:#b3f0f6; color:#122530 }
+.btn.danger,.popover.menu .danger { color:var(--red) }
+.btn.square { padding:6px 8px }
+main { padding:0 24px 16px; max-width:2200px; margin:auto }
+.ops { display:grid; grid-template-columns:minmax(156px,1fr) minmax(190px,1.7fr) minmax(190px,1.1fr) repeat(2,minmax(86px,.54fr)); border:1px solid var(--line); border-radius:5px; background:var(--panel); margin:17px 0 13px; min-height:72px }
+.metric { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:6px; padding:9px 14px; min-width:0; border-right:1px solid var(--line) }
+.metric:last-child { border-right:0 }
+.metric-value { font:700 17px var(--mono); overflow-wrap:anywhere }
+.airport-name { font-size:11px; color:var(--muted); overflow-wrap:anywhere }
+.ops-detail { font:10px var(--mono); color:var(--muted); line-height:1.35 }
+.weather-link { border:0; background:none; text-align:left; align-self:stretch; padding:0; display:grid; gap:5px; color:inherit }
+.weather-link:hover .eyebrow { color:var(--cyan) }
+.weather-link .metric-value { font-size:14px; white-space:normal }
+.rwy-chip.catalogue { color:var(--muted); border-color:var(--edge); background:#1b2733 }
+.rwy-chip.suggested { color:var(--amber); border-color:#73583d }
+.feed-list { display:grid; gap:8px; margin-top:10px }
+.raw-atis { margin:8px 0 0; font:11px/1.55 var(--mono); color:var(--muted); white-space:pre-wrap; overflow-wrap:anywhere }
+.online { color:var(--green); display:inline-flex; align-items:center; gap:7px; font-size:12px }
+.online::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor }
+.rwy-chip { color:var(--cyan); min-height:25px; padding:3px 7px; background:#1b303a; border-color:#335563 }
+.rwy-chip.warn { color:var(--red); border-color:var(--red) }
+.tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:9px; background:#141e28; border:1px solid var(--line); border-radius:5px }
+.filters { display:flex; align-items:center; flex:1; gap:8px; min-width:0 }
+.filter-options { display:flex; flex:1 0 100%; align-items:center; gap:7px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:9px }
+.search { position:relative; flex:1 1 160px; max-width:440px }
+.search .icon { position:absolute; left:9px; top:9px; color:var(--faint); pointer-events:none }
+.search input { width:100%; padding-left:31px }
+input,select,textarea { background:#101923; border:1px solid var(--edge); border-radius:4px; padding:7px 8px; min-height:34px; min-width:0 }
+select { padding-right:20px }
+input::placeholder,textarea::placeholder { color:var(--faint) }
+.tools input,.tools select { font:11px var(--mono); max-width:100% }
+#filter-status { width:139px }
+.board-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin:19px 0 10px }
+.board-title { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap }
+.board-head h2 { font:700 17px var(--mono); letter-spacing:.035em }
+.legend { color:var(--muted); font:10px var(--mono); gap:12px }
+.swatch { display:inline-block; width:7px; height:7px; margin-right:5px; background:var(--ink); border-radius:1px }
+.board { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; gap:12px }
+.bay { background:#131c25; border:1px solid var(--edge); border-radius:5px; overflow:hidden; min-width:0 }
+.bay-head { display:flex; align-items:center; gap:8px; min-height:39px; padding:6px 9px; background:#1b2733; border-bottom:1px solid var(--edge) }
+.bay-code { font:700 12px var(--mono); padding:3px 6px; color:var(--cyan); border:1px solid #3b5667; background:#1a303c; border-radius:3px }
+.bay-title { font:700 11px var(--mono); letter-spacing:.075em }
+.bay-n { margin-left:auto; color:var(--muted); font:11px var(--mono); border:1px solid var(--edge); background:#121b25; padding:3px 5px; border-radius:3px }
+.stack { display:flex; flex-direction:column; gap:5px; min-height:106px; height:calc(100% - 39px); padding:6px }
+.empty { display:grid; min-height:92px; align-content:center; text-align:center; border:1px dashed var(--edge); color:var(--faint); font:11px var(--mono) }
+.board-empty { grid-column:1/-1; padding:12px }
+.strip { --ink:var(--muted); position:relative; min-width:0; border:1px solid #405161; border-left:3px solid var(--ink); background:var(--strip); border-radius:3px; color:var(--text); font:12px var(--mono) }
+.strip.ifr { --ink:var(--ifr) }
+.strip.vfr { --ink:var(--vfr) }
+.strip.helico { --ink:var(--helico) }
+.strip.militaire { --ink:var(--militaire) }
+.strip.selected { outline:1px solid var(--selected); outline-offset:-1px }
+.strip.attention { border-top-color:var(--attention); border-right-color:var(--attention); border-bottom-color:var(--attention) }
+.strip.attention .flag { color:var(--attention) }
+.strip.processed .callsign { color:var(--muted) }
+.strip.emergency { --ink:#ff9a9a; border-color:#ff7777; background:#382026; animation:emergency-pulse 1.4s ease-in-out infinite }
+.strip.emergency .callsign { color:#ffd4d4 }
+.emergency-banner { padding:4px 7px; border-bottom:1px solid #a94e55; background:#60272e; color:#fff0f0; font-weight:800; overflow-wrap:anywhere }
+.strip.emergency .row.clearances { background:#38242a }
+@keyframes emergency-pulse {
+  50% { border-color:#d94854; background:#58272d }
+}
+@media (prefers-reduced-motion: reduce) {
+  .strip.emergency { animation:none }
+}
+.strip.drag-source { opacity:.45 }
+.strip.drop-before { box-shadow:0 -3px var(--cyan) }
+.strip.drop-after { box-shadow:0 3px var(--cyan) }
+.bay.drop { border-color:var(--cyan); background:#192c35 }
+.row { display:grid; min-width:0 }
+.row.identity { grid-template-columns:21px minmax(66px,1.28fr) minmax(41px,.73fr) minmax(60px,1.14fr) minmax(64px,1.1fr) 29px; min-height:26px }
+.row.nav { grid-template-columns:minmax(71px,1.1fr) minmax(39px,.6fr) minmax(66px,1.5fr) minmax(59px,.75fr) minmax(39px,.6fr); border-top:1px solid #405161 }
+.row.clearances { grid-template-columns:repeat(3,minmax(0,1fr)); border-top:1px solid #405161; background:#1a2934 }
+.row.note { display:flex; border-top:1px solid #405161 }
+.row.note .cell { flex:0 1 auto; min-height:21px }
+.row.note .cell[data-field="remarks"] { flex:1 1 auto }
+.row.note .category-tag { color:var(--ink); flex:none; font-size:9px; font-weight:700 }
+.network-tag { color:var(--cyan); margin-left:auto; flex:none !important; border-left:1px solid #405161; padding-inline:6px; font-size:9px }
+.network-tag.lost { color:var(--amber) }
+.cell,.grip,.more { min-width:0; border:0; border-right:1px solid #405161; background:none; padding:3px 5px; text-align:left; display:flex; align-items:center; gap:4px; line-height:1.22; white-space:nowrap; overflow:hidden; font:inherit }
+.cell:last-child,.more { border-right:0 }
+button.cell:hover,.more:hover,.grip:hover { background:#354758 }
+.cell b,.cell span:not(.flag):not(.done) { overflow:hidden; text-overflow:ellipsis }
+.cell small { color:var(--muted); font:700 9px var(--mono); flex:none }
+.cell.vertical { display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-height:29px }
+.cell[data-field="squawk"] small { font-size:8.5px }
+.note .cell { padding-block:2px }
+.cell.vertical b { width:100%; min-width:0 }
+.callsign { color:var(--ink); font-size:clamp(11px,1vw,14px); font-weight:800 }
+.airport-pair { font-size:10px }
+.airport-pair em { color:var(--faint); font-style:normal; padding:0 2px }
+.status { color:#d7e6f1; font-size:10px; font-weight:700; white-space:normal }
+.status.clearance { color:var(--amber) }
+.status.occupied { color:var(--cyan) }
+.assigned b { color:#b1e7ee }
+.grip,.more { color:var(--faint); justify-content:center; padding:0 }
+.grip { cursor:grab; touch-action:none; user-select:none }
+.grip .icon,.more .icon { width:13px; height:13px }
+.dragging { user-select:none; cursor:grabbing }
+.drag-ghost { position:fixed; pointer-events:none; z-index:30; background:#1c3543; border:1px solid var(--cyan); border-radius:4px; padding:7px 10px; color:var(--cyan); font:700 13px var(--mono); box-shadow:0 3px 12px #0009 }
+.footer { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:6px; margin-top:12px; padding:10px 0 1px; border-top:1px solid var(--line); color:var(--faint); font:10px var(--mono) }
+.footer strong { color:var(--amber) }
+.alert { display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid #925951; background:#392521; color:#ffd4cf; padding:8px 10px; border-radius:4px; margin-top:10px; font-size:12px }
+.popover { position:fixed; z-index:20; width:min(330px,calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto; background:#1a2733; border:1px solid #536779; border-radius:5px; padding:10px; box-shadow:0 8px 28px #000a }
+.popover.menu { width:min(230px,calc(100vw - 16px)); padding:5px }
+.popover.menu button { width:100%; min-height:32px; background:none; border:0; border-radius:3px; text-align:left; padding:5px 8px; font-size:12px }
+.popover.menu button:hover { background:#2c4051 }
+.popover .inline { flex-wrap:nowrap; margin-top:6px }
+.popover input,.popover select,.popover textarea { width:100% }
+.error { color:var(--red); font-size:12px; overflow-wrap:anywhere }
+.error:not(:empty) { margin-top:6px }
+.toast { position:fixed; bottom:16px; right:16px; z-index:40; border:1px solid #527283; border-radius:4px; background:#233747; color:var(--text); padding:10px 13px; max-width:min(420px,calc(100vw - 32px)); box-shadow:0 4px 14px #0009 }
+dialog { width:min(880px,calc(100% - 24px)); max-height:calc(100dvh - 24px); padding:0; color:var(--text); background:#151f2a; border:1px solid #4a6275; border-radius:6px; box-shadow:0 14px 48px #000a }
+dialog::backdrop { background:#080e17c9 }
+.dialog-head { display:flex; justify-content:space-between; align-items:center; gap:12px; background:#1a2935; border-bottom:1px solid var(--edge); padding:12px 16px; position:sticky; top:0; z-index:1 }
+.dialog-head h2 { font:700 16px var(--mono); color:var(--cyan) }
+.dialog-body { padding:16px }
+.dialog-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-top:14px }
+.form-grid,.settings-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px }
+.settings-grid { grid-template-columns:repeat(2,minmax(0,1fr)) }
+.field { display:flex; flex-direction:column; gap:5px; color:var(--muted); font:11px var(--mono) }
+.field input,.field select,.field textarea { width:100%; font:13px var(--mono); color:var(--text) }
+.field textarea { resize:vertical }
+.field.wide { grid-column:span 2 }
+.subsection { margin-top:18px; padding-top:12px; border-top:1px solid var(--line) }
+.subsection h3 { margin-bottom:8px; font:700 12px var(--mono); color:var(--cyan) }
+.help { color:var(--muted); margin:7px 0; font-size:12px; line-height:1.45 }
+.bay-visibility-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:8px; margin-top:12px }
+.bay-visibility-option { display:flex; align-items:center; gap:8px; padding:8px; border:1px solid var(--edge); border-radius:4px; background:var(--panel); cursor:pointer; font:12px var(--mono); overflow-wrap:anywhere }
+.bay-visibility-option input { flex:none; min-height:0; margin:0; accent-color:var(--cyan) }
+.order-row { display:flex; justify-content:space-between; align-items:center; gap:8px; border-bottom:1px solid var(--line); padding:4px 0; font:12px var(--mono) }
+.order-row .bay-code-input { width:9ch }
+.order-row .bay-name-input { flex:1; width:0 }
+.order-row .inline { flex-wrap:nowrap }
+.color-grid,.runway-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:8px }
+.runway-card { border:1px solid var(--edge); border-radius:4px; padding:9px; background:var(--panel); min-width:0 }
+.runway-card.warn { border-color:var(--red) }
+.runway-card h3 { font:700 13px var(--mono); color:var(--cyan) }
+.runway-card p { margin:6px 0; font:11px var(--mono); overflow-wrap:anywhere }
+.table-wrap { overflow:auto; max-height:55vh; margin-top:8px }
+table { width:100%; border-collapse:collapse; font:11px var(--mono) }
+th,td { border-bottom:1px solid var(--line); text-align:left; padding:7px 6px; vertical-align:top; overflow-wrap:anywhere }
+th { color:var(--cyan); background:var(--raised); position:sticky; top:0; white-space:nowrap }
+td:first-child { white-space:nowrap }
+@media(max-width:1000px) {
+  .board { grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .callsign { font-size:13px }
+}
+@media(max-width:760px) {
+  .top { flex-wrap:wrap; padding:11px 10px }
+  main { padding:0 10px 12px }
+  .ops { grid-template-columns:repeat(3,1fr) }
+  .metric:first-child,.metric:nth-child(2) { grid-column:auto; grid-row:1; border-bottom:1px solid var(--line) }
+  .metric:nth-child(2) { grid-column:span 2; border-right:0 }
+  .ops { margin-top:10px }
+  .clock { padding-left:7px; margin-left:0 }
+  .board { grid-template-columns:1fr }
+  .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)) }
+}
+@media(max-width:550px) {
+  .filters { flex-basis:100% }
+}
+@media(max-width:375px) {
+  .row.identity { grid-template-columns:17px minmax(61px,1.1fr) minmax(35px,.65fr) minmax(61px,1.1fr) minmax(49px,.8fr) 24px }
+  .cell { padding-left:3px; padding-right:3px }
+  .callsign { font-size:11px }
+}
+</style>
+<link rel="stylesheet" href="assistant.css">
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" class="sr-only" aria-hidden="true">
+  <symbol id="i-board" viewBox="0 0 24 24"><path d="M3 4h18v16H3zM3 9h18M3 14h18M8 4v16m7-11v5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16M8 4v4m8 2v4m-6 2v4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></symbol>
+  <symbol id="i-runway" viewBox="0 0 24 24"><path d="M6 3h12v18H6zM12 6v2m0 3v2m0 3v2"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M6 3h12v18H6zM9 8h6m-6 4h6m-6 4h6"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><path d="M4 4h16v5H4zm2 5v11h12V9m-8 4h4"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><path d="M8 5h.01M16 5h.01M8 12h.01M16 12h.01M8 19h.01M16 19h.01" stroke-width="3.5"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3.5"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+</svg>
+<header class="top">
+  <div class="brand">
+    <div class="brand-icon"><svg class="icon" aria-hidden="true"><use href="#i-board"/></svg></div>
+    <div><small>Poste de contrôle aérien · Simulation</small><h1>FICHES DE VOL ÉLECTRONIQUES</h1></div>
+  </div>
+  <div class="top-right">
+    <button id="connect-ivao" class="btn primary" type="button">CONNECTER IVAO</button>
+    <button id="take-service" class="btn">PRISE DE SERVICE</button>
+    <button id="manex" class="btn" type="button" hidden>MANEX</button>
+    <button id="ai-toggle" class="btn" type="button" aria-controls="ai-panel" aria-expanded="false">ASSISTANT ATC</button>
+    <button id="generate" class="btn">GÉNÉRER DU TRAFIC</button>
+    <button id="add-ivao" class="btn">AJOUTER IVAO</button>
+    <button id="new-flight" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> NOUVEAU VOL</button>
+    <button id="settings" class="btn square" aria-label="Paramètres" title="Paramètres"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
+    <div class="clock">
+      <div><span class="clock-label">HEURE UTC</span><time id="utc-clock"></time><small id="utc-date"></small></div>
+      <div><span class="clock-label" id="local-clock-label">HEURE LOCALE</span><time id="local-clock"></time><small id="local-date"></small></div>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="ops" aria-label="Données de session">
+    <div class="metric"><span id="station-caption" class="eyebrow">Aérodrome</span><div id="airport-code" class="metric-value"></div><div id="airport-name" class="airport-name"></div></div>
+    <div class="metric"><span id="rwy-caption" class="eyebrow">Pistes en service</span><div id="runways-top" class="inline"></div><div id="rwy-source" class="ops-detail" hidden></div></div>
+    <div class="metric"><button id="weather-details" class="weather-link" title="Météo et ATIS IVAO"><span id="weather-caption" class="eyebrow">QNH simulé</span><span id="qnh" class="metric-value"></span><span id="metar-source" class="ops-detail" hidden></span></button></div>
+    <div class="metric"><span class="eyebrow">Vols actifs</span><div id="flight-count" class="metric-value"></div><div id="traffic-source" class="ops-detail" hidden></div></div>
+    <div class="metric"><span class="eyebrow">Système</span><span id="system-state" class="online mono">MODE LOCAL</span></div>
+  </section>
+  <section class="tools" aria-label="Recherche et outils">
+    <div class="filters">
+      <label class="search"><span class="sr-only">Rechercher un vol</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="search" type="search" placeholder="Indicatif, transpondeur, type, OACI, piste…" autocomplete="off"></label>
+      <button id="filter-toggle" class="btn" aria-controls="filter-options" aria-expanded="false">FILTRES</button>
+    </div>
+    <div class="actions">
+      <button id="runways" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-runway"/></svg>PISTES</button>
+      <button id="history" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-log"/></svg>JOURNAL</button>
+      <button id="archives" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-archive"/></svg>ARCHIVES</button>
+    </div>
+    <div id="filter-options" class="filter-options" hidden>
+      <select id="filter-rules" aria-label="Règles de vol"><option value="">Règles de vol</option><option>IFR</option><option>VFR</option><option>Y</option><option>Z</option></select>
+      <select id="filter-flow" aria-label="Sens du trafic"><option value="">Arrivées et départs</option><option value="ARR">Arrivées</option><option value="DEP">Départs</option></select>
+      <select id="filter-status" aria-label="État opérationnel"></select>
+      <select id="filter-runway" aria-label="Piste assignée"></select>
+      <button id="filter-clear" class="btn">EFFACER</button>
+    </div>
+  </section>
+  <div id="alert" class="alert" role="status" hidden></div>
+  <div class="board-head">
+    <div class="board-title"><h2>TABLEAU DES VOLS</h2><span id="board-count" class="eyebrow"></span></div>
+    <div class="legend" aria-label="Légende des couleurs">
+      <span><i class="swatch" style="--ink:var(--ifr)"></i>IFR</span>
+      <span><i class="swatch" style="--ink:var(--vfr)"></i>VFR</span>
+      <span><i class="swatch" style="--ink:var(--helico)"></i>HÉLICOPTÈRE</span>
+      <span><i class="swatch" style="--ink:var(--militaire)"></i>MILITAIRE</span>
+      <span><i class="swatch" style="--ink:var(--attention)"></i>ATTENTION</span>
+    </div>
+    <button id="bay-visibility" class="btn" type="button" aria-haspopup="dialog">AFFICHAGE DES BAIES</button>
+  </div>
+  <section id="board" class="board" aria-label="Baies de fiches de vol"></section>
+  <footer class="footer"><strong>SIMULATION UNIQUEMENT · USAGE NON OPÉRATIONNEL</strong><span>POIGNÉE : DÉPLACER · CHAMP : ÉDITER · CLIC DROIT / ⋯ : ACTIONS</span><span id="save-state">SAUVEGARDE LOCALE</span></footer>
+</main>
+<aside id="ai-panel" aria-labelledby="ai-title" hidden>
+  <header class="ai-header">
+    <div><h2 id="ai-title">ASSISTANT ATC</h2><p id="ai-context" class="muted"></p></div>
+    <button id="ai-close" class="btn square" type="button" aria-label="Fermer l’assistant">×</button>
+  </header>
+  <p id="ai-connection" class="ai-connection" role="status"></p>
+  <p id="ai-manex" class="ai-connection" role="status"></p>
+  <details id="ai-library" class="ai-library">
+    <summary>Documentation de l’aérodrome</summary>
+    <div id="ai-documents"></div>
+    <form id="ai-import">
+      <label>Carte ou extrait <input name="file" type="file" accept=".pdf,.txt" required></label>
+      <label>Titre <input name="title" maxlength="160" placeholder="Facultatif"></label>
+      <label>Catégorie <select name="category"><option>AIP / AIS</option><option>NOTAM</option><option>VAC / ADC</option><option>SID / STAR / IAC</option><option>MANEX IVAO</option><option>Information locale</option></select></label>
+      <label>Lien de l’éditeur <input name="publisher" type="url" placeholder="https://…"></label>
+      <div class="ai-dates">
+        <label>Début de validité <input name="from" type="date"></label>
+        <label>Fin de validité <input name="until" type="date"></label>
+      </div>
+      <button class="btn" type="submit">INDEXER LE DOCUMENT</button>
+      <p id="ai-import-status" class="muted" role="status"></p>
+    </form>
+  </details>
+  <div id="ai-chat" class="ai-chat" role="log" aria-label="Conversation"></div>
+  <form id="ai-ask" class="ai-ask">
+    <details class="ai-options">
+      <summary>Contexte et sources</summary>
+      <label id="ai-board-option" class="ai-check"><input name="board" type="checkbox" checked> Inclure le tableau des vols</label>
+      <label class="ai-check"><input name="online" type="checkbox" checked> <span id="ai-online-label">Consulter les sources en ligne</span></label>
+      <div id="ai-visual-options">
+        <div class="ai-dates">
+          <label>Page PDF à analyser <select name="visual"><option value="">Aucune</option></select></label>
+          <label>N° de page <input name="page" type="number" min="1" value="1" disabled></label>
+        </div>
+        <p class="help">La page choisie est transmise à OpenAI pour lire une carte ou un document numérisé.</p>
+      </div>
+    </details>
+    <label class="sr-only" for="ai-question">Question ATC</label>
+    <textarea id="ai-question" name="question" rows="2" maxlength="2000" required placeholder="Ex. fréquence approche, piste 27L, roulage…"></textarea>
+    <div class="ai-send"><small id="ai-send-hint">Simulation</small><button class="btn primary" type="submit" disabled>POSER LA QUESTION</button></div>
+    <p id="ai-error" class="error" role="alert"></p>
+  </form>
+</aside>
+<div id="popover" class="popover" hidden></div>
+<dialog id="dialog" aria-labelledby="dialog-title">
+  <div class="dialog-head"><h2 id="dialog-title"></h2><button id="dialog-close" class="btn square" aria-label="Fermer"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div>
+  <div id="dialog-body" class="dialog-body"></div>
+</dialog>
+<div id="toast" class="toast" role="status" hidden></div>
+<input id="import-file" type="file" accept=".json,application/json" hidden>
+<input id="profile-file" type="file" accept=".json,application/json" hidden>
+<script src="timezone-lookup.js"></script>
+<script>
+'use strict';
+// Le statut opérationnel et la position dans le tableau sont indépendants.
+const BAYS = {
+  ARR:'Arrivées', APP:'Approche', CLR:'Clairances', TWR:'Tour',
+  GND:'Sol', PARK:'Parking', TAXI:'Roulage', DEP:'Départs'
+};
+const LEGACY_BAY_NAMES = {
+  ARR:'Arrivals', CLR:'Clearance', TWR:'Tower', GND:'Ground', TAXI:'Taxi', DEP:'Departures'
+};
+const STATUS = {
+  announced:['ARR','Trafic annoncé','ANNONCÉ'],
+  approach:['APP','En approche','APPROCHE'],
+  landClear:['ARR','Autorisé à atterrir','ATTERR. AUT.'],
+  goAround:['ARR','Remise de gaz','REMISE DE GAZ'],
+  landed:['ARR','Atterri · sur piste','ATTERRI'],
+  vacated:['GND','Piste dégagée','PISTE DÉGAGÉE'],
+  groundHold:['GND','Attente au sol','ATTENTE AU SOL'],
+  arrivalGround:['GND','Au sol à l’arrivée','ARR. AU SOL'],
+  groundTaxi:['GND','Roulage à l’arrivée','ROULAGE ARR.'],
+  onStand:['PARK','Au parking','AU PARKING'],
+  parked:['PARK','Au parking avant départ','AU PARKING'],
+  filed:['CLR','Plan de vol déposé','PLAN DÉPOSÉ'],
+  localGround:['GND','Trafic local au sol · IVAO','LOCAL AU SOL'],
+  ifrClear:['CLR','Clairance IFR délivrée','CLAIRANCE IFR'],
+  startClear:['CLR','Mise en route autorisée','MISE EN ROUTE'],
+  taxiClear:['TAXI','Roulage autorisé','ROULAGE AUT.'],
+  taxiOut:['TAXI','Roulage au départ','ROULAGE DÉP.'],
+  holding:['TWR','Au point d’attente','POINT D’ATTENTE'],
+  lineUp:['TWR','Alignement autorisé','ALIGN. AUT.'],
+  linedUp:['TWR','Aligné sur piste','ALIGNÉ'],
+  takeoffClear:['TWR','Autorisé au décollage','DÉCOLL. AUT.'],
+  takeoffRoll:['TWR','En roulement au décollage','ROULEMENT'],
+  airborne:['DEP','En vol · piste libérée','EN VOL'],
+  climbing:['DEP','En montée initiale','MONTÉE'],
+  enRoute:['DEP','En route','EN ROUTE'],
+  transfer:['DEP','En attente de transfert','TRANSFERT'],
+  transferred:['DEP','Transféré','TRANSFÉRÉ']
+};
+function bayForCode(code,layout) {
+  const {bays,order,redirects} = layout;
+  return order.find(id => bays[id].code === code) ??
+    Object.values(redirects).find(redirect => redirect.code === code)?.destination;
+}
+function bayForStatus(status,currentBay,layout = sharedBayLayout) {
+  return bayForCode(STATUS[status]?.[0],layout) ??
+    (Object.hasOwn(layout.bays,currentBay) ? currentBay : layout.order[0]);
+}
+function departureInClearance(flow,status,bay,layout = sharedBayLayout) {
+  return flow === 'DEP' && ENROUTE_DEPARTURE_STATES.has(status) && layout.bays[bay]?.code === 'CLR';
+}
+function dedicatedNetworkBayCode(flow,status,inApproachArea) {
+  if (status === 'parked' || status === 'onStand') return 'PARK';
+  if (status === 'approach' || (flow === 'DEP' && inApproachArea && ENROUTE_DEPARTURE_STATES.has(status))) return 'APP';
+  return '';
+}
+function bayForNetworkFlight(flow,status,currentBay,layout = sharedBayLayout,inApproachArea = false) {
+  const dedicated = bayForCode(dedicatedNetworkBayCode(flow,status,inApproachArea),layout);
+  if (dedicated) return dedicated;
+  const preferred = layout.trafficBays[flow];
+  if (preferred && !departureInClearance(flow,status,preferred,layout)) return preferred;
+  const bay = bayForStatus(status,currentBay,layout);
+  return departureInClearance(flow,status,bay,layout) ? layout.order.find(id => layout.bays[id].code !== 'CLR') ?? bay : bay;
+}
+const ENROUTE_DEPARTURE_STATES = new Set(['airborne','climbing','enRoute','transfer','transferred']);
+const ARR_STATES = ['announced','approach','landClear','goAround','landed','vacated','groundHold','arrivalGround','groundTaxi','onStand'];
+const RWY_OCCUPIED = ['landed','linedUp','takeoffRoll'];
+const RWY_CLEARANCE = ['landClear','lineUp','takeoffClear'];
+const RWY_RESERVED = [...RWY_OCCUPIED,...RWY_CLEARANCE];
+const RWY_REQUIRED = [...RWY_RESERVED,'vacated','holding','airborne'];
+const MOVEMENTS = {landClear:'Clairance d’atterrissage',landed:'Atterrissage',vacated:'Piste dégagée',
+  holding:'Point d’attente',lineUp:'Clairance d’alignement',linedUp:'Alignement sur piste',
+  takeoffClear:'Clairance de décollage',takeoffRoll:'Roulement au décollage',
+  airborne:'Décollage',goAround:'Remise de gaz'};
+const TYPES = {A319:'M',A320:'M',A20N:'M',A321:'M',A21N:'M',A333:'H',A359:'H',A388:'J',
+  B738:'M',B77W:'H',B789:'H',BCS1:'M',BCS3:'M',E190:'M',E295:'M',AT76:'M',C172:'L',DA40:'L'};
+const FLIGHT_CATEGORIES = {IFR:'IFR',VFR:'VFR',HELICO:'Hélicoptère',MILITAIRE:'Militaire'};
+const HELICOPTER_TYPES = new Set('A109 A139 A169 A189 AS32 AS50 AS55 AS65 B06 B105 B407 B412 B429 EC20 EC25 EC30 EC35 EC45 H47 H60 R22 R44 R66 S61 S76 S92'.split(' '));
+const FLOW_LABELS = {ARR:'Arrivées',DEP:'Départs'};
+const FIELDS = {
+  callsign:'Indicatif', aircraft:'Type Aéronef', wake:'Sillage', origin:'Départ OACI', destination:'Destination OACI',
+  rules:'Règles de vol', flow:'Sens du trafic', runway:'Piste assignée', current:'Altitude / niveau actuel',
+  assigned:'Altitude / niveau assigné', speed:'Vitesse assignée', heading:'Cap magnétique assigné',
+  frequency:'Canal de transfert', route:'Route / SID / STAR', squawk:'Transpondeur', estimate:'Heure estimée UTC',
+  status:'État opérationnel', colorCategory:'Catégorie de couleur', remarks:'Remarques', bay:'Baie', processed:'Traité', attention:'Attention'
+};
+const DEFAULTS = {
+  airport:'LFPG', airportName:'Paris Charles-de-Gaulle', qnh:1018,
+  runways:['26L','26R','27L','27R'], order:Object.keys(BAYS),
+  bays:Object.fromEntries(Object.entries(BAYS).map(([code,name]) => [code,{code,name}])),
+  approach:{radiusNm:40,ceilingFt:12000},
+  colors:{ifr:'#83d7f3',vfr:'#9ee0a7',helico:'#ffcc80',militaire:'#cfadff',selected:'#e6f4ff',attention:'#ff9b8d'}
+};
+const COLOR_LABELS = {ifr:'IFR',vfr:'VFR',helico:'Hélicoptère',militaire:'Militaire',selected:'Sélection',attention:'Attention'};
+const STORAGE_KEY = 'atc-efs-workstation.v1';
+const BAY_LAYOUT_KEY = STORAGE_KEY + '.bays';
+const PROFILE_FORMAT = 'efs-profile';
+const RUNWAY = /^(0[1-9]|[12][0-9]|3[0-6])[LCR]?$/;
+const IVAO_STATION = /^[A-Z]{4}(?:_[A-Z0-9]{1,12}){1,4}$/;
+const FLIGHT_RULES = {IFR:'IFR',VFR:'VFR',Y:'Y · IFR puis VFR',Z:'Z · VFR puis IFR'};
+const NETWORK_PHASES = {
+  Boarding:'Embarquement', Departing:'Départ', 'Initial Climb':'Montée initiale',
+  'En Route':'En route', Approach:'Approche', Landed:'Atterri', 'On Blocks':'Au parking'
+};
+const EMERGENCY_CODES = Object.freeze({'7700':'URGENCE','7600':'PANNE RADIO','7500':'INTERVENTION ILLICITE'});
+const SQUAWK_CODE = /^[0-7]{4}$/;
+const CALLSIGN = /^[A-Z0-9]{2,7}$/;
+const AIRCRAFT_CODE = /^[A-Z][A-Z0-9]{1,3}$/;
+const AERODROME_CODE = /^[A-Z]{4}$/;
+const $ = id => document.getElementById(id);
+const copy = value => structuredClone(value);
+const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icon = name => '<svg class="icon" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+const now = () => new Date().toISOString();
+const utcMinute = offset => new Date(Date.now() + offset * 60000).toISOString().slice(11,16);
+const uid = () => globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+const upper = value => String(value ?? '').trim().toUpperCase();
+const option = (value,label,selected) => '<option value="' + esc(value) + '"' + (value === selected ? ' selected' : '') + '>' + esc(label) + '</option>';
+const validStates = (flow,rules) => Object.keys(STATUS).filter(key =>
+  ARR_STATES.includes(key) === (flow === 'ARR') && (key !== 'ifrClear' || ['IFR','Y','Z'].includes(rules)));
+
+function validate(condition,message) {
+  if (!condition) throw new Error(message);
+}
+function level(value,label,minimum = 0) {
+  if (!value) return '';
+  const fl = /^FL\s*(\d{1,3})$/.exec(value);
+  if (fl) {
+    validate(Number(fl[1]) <= 600, label + ' : FL000 à FL600.');
+    return 'FL' + fl[1].padStart(3,'0');
+  }
+  const feet = /^(-?\d{1,5})\s*(?:FT)?$/.exec(value);
+  validate(feet && Number(feet[1]) >= minimum && Number(feet[1]) <= 60000, label + ' : saisir par exemple 3000 FT ou FL120.');
+  return Number(feet[1]) + ' FT';
+}
+function normalizedInteger(value,pattern,min,max,message) {
+  if (!value) return '';
+  const match = pattern.exec(value);
+  validate(match && Number(match[1]) >= min && Number(match[1]) <= max,message);
+  return String(Number(match[1]));
+}
+function normalizeFlight(raw,bays = state?.settings.bays ?? DEFAULTS.bays) {
+  const f = {};
+  for (const key of Object.keys(FIELDS)) {
+    f[key] = ['attention','processed'].includes(key) ? raw[key] === true :
+      key === 'remarks' ? String(raw[key] ?? '').trim() : key === 'status' ? String(raw[key] ?? '') : upper(raw[key]);
+  }
+  const tracked = raw.ivao != null;
+  validate(CALLSIGN.test(f.callsign),'Indicatif : 2 à 7 lettres ou chiffres.');
+  validate(AIRCRAFT_CODE.test(f.aircraft) || (tracked && !f.aircraft),'Le type aéronef contient 2 à 4 caractères et commence par une lettre.');
+  validate(['L','M','H','J'].includes(f.wake) || (tracked && !f.wake),'Sélectionner une catégorie de sillage.');
+  validate([f.origin,f.destination].every(code => AERODROME_CODE.test(code) || (tracked && !code)),'Les codes aérodromes doivent contenir 4 lettres.');
+  validate((Object.hasOwn(FLIGHT_RULES,f.rules) || (tracked && !f.rules)) && ['ARR','DEP'].includes(f.flow),'Règles ou sens du vol invalide.');
+  validate(!f.colorCategory || Object.hasOwn(FLIGHT_CATEGORIES,f.colorCategory),'Catégorie de couleur invalide.');
+  validate(!f.runway || RUNWAY.test(f.runway),'Piste invalide : saisir par exemple 09, 26R ou 27L.');
+  validate(!f.squawk || SQUAWK_CODE.test(f.squawk),'Le code transpondeur contient quatre chiffres octaux (0–7).');
+  validate(!f.estimate || /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(f.estimate),'Heure estimée : format UTC HH:MM.');
+  validate(validStates(f.flow,f.rules).includes(f.status),'État incompatible avec les règles ou le sens du vol.');
+  validate(Object.hasOwn(bays,f.bay),'Baie inconnue.');
+  validate(!RWY_REQUIRED.includes(f.status) || f.runway,'Une piste est requise pour cet état.');
+  f.current = level(f.current,FIELDS.current,-1500);
+  f.assigned = level(f.assigned,FIELDS.assigned);
+  f.speed = normalizedInteger(f.speed,/^(\d{1,3})\s*(?:KT)?$/,1,999,'Vitesse : 1 à 999 KT.');
+  f.heading = normalizedInteger(f.heading,/^(?:HDG\s*)?(\d{1,3})°?$/,1,360,'Cap magnétique : 001 à 360 degrés.');
+  if (f.heading) f.heading = f.heading.padStart(3,'0');
+  f.frequency = f.frequency.replace(',','.');
+  if (f.frequency) {
+    validate(/^\d{3}\.\d{1,3}$/.test(f.frequency),'Canal VHF : saisir par exemple 121.800.');
+    const channel = Math.round(Number(f.frequency) * 1000);
+    validate(channel >= 118000 && channel <= 136990 && channel % 5 === 0 && channel % 25 !== 20,
+      'Canal VHF COM hors plage ou non valide (espacement 25 / 8,33 kHz).');
+    f.frequency = (channel / 1000).toFixed(3);
+  }
+  validate(f.route.length <= 600 && f.remarks.length <= 240,'Route limitée à 600 caractères, remarques à 240.');
+  if (tracked) f.ivao = normalizeNetworkLink(raw.ivao);
+  return f;
+}
+function normalizeNetworkLink(link) {
+  validate(typeof link.key === 'string' && /^\d{1,20}$/.test(link.key),'Identifiant IVAO invalide.');
+  validate(Number.isSafeInteger(link.seen) && link.seen > 0 &&
+    (link.absent == null || (Number.isSafeInteger(link.absent) && link.absent >= link.seen)),'Horodatage de trafic IVAO invalide.');
+  validate(Array.isArray(link.locked) && link.locked.every(key => Object.hasOwn(FIELDS,key)),'Champs IVAO invalides.');
+  return {key:link.key, seen:link.seen, absent:link.absent ?? null, locked:[...new Set(link.locked.filter(key => key !== 'current'))],
+    observedSquawk:typeof link.observedSquawk === 'string' && SQUAWK_CODE.test(link.observedSquawk) ? link.observedSquawk : '',
+    altitudeAt:Number.isSafeInteger(link.altitudeAt) && link.altitudeAt > 0 && link.altitudeAt <= 8640000000000000 ? link.altitudeAt : null,
+    phase:Object.hasOwn(NETWORK_PHASES,link.phase) ? link.phase : '', gs:Number.isInteger(link.gs) && link.gs >= 0 && link.gs <= 2000 ? link.gs : null,
+    inApproachArea:link.inApproachArea === true,
+    plan:typeof link.plan === 'string' && /^\d{1,20}$/.test(link.plan) ? link.plan : '',
+    category:link.category === 'HELICO' || link.category === 'MILITAIRE' ? link.category : '',
+    manualFlow:['AUTO','ARR','DEP'].includes(link.manualFlow) ? link.manualFlow : '',
+    autoArchived:link.autoArchived === true};
+}
+function normalizeBays(source,order) {
+  validate(source && typeof source === 'object' && !Array.isArray(source),'Configuration des baies invalide.');
+  const ids = Object.keys(source);
+  validate(ids.length >= 1 && ids.length <= 30,'Le tableau doit contenir entre 1 et 30 baies.');
+  validate(Array.isArray(order) && order.length === ids.length && new Set(order).size === ids.length &&
+    order.every(id => typeof id === 'string' && Object.hasOwn(source,id)),'Ordre des baies invalide.');
+  const codes = new Set();
+  return Object.fromEntries(ids.map(id => {
+    validate(/^[A-Z0-9]{1,12}$/.test(id),'Identifiant de baie invalide.');
+    const code = upper(source[id]?.code);
+    const name = typeof source[id]?.name === 'string' ? source[id].name.trim() : '';
+    validate(/^[A-Z0-9]{1,8}$/.test(code) && (!Object.hasOwn(BAYS,id) || code === id),'Code de baie invalide. Utilise 1 à 8 lettres ou chiffres.');
+    validate(!codes.has(code),'Le code de baie ' + code + ' est déjà utilisé.');
+    validate(name && name.length <= 36,'La baie ' + code + ' doit avoir un nom de 1 à 36 caractères.');
+    codes.add(code);
+    return [id,{code,name,hidden:source[id]?.hidden === true}];
+  }));
+}
+function decodeBayLayout(raw,fallbackColors = DEFAULTS.colors) {
+  const bays = normalizeBays(raw?.bays,raw?.order);
+  const redirects = Object.fromEntries(Object.entries(raw.redirects ?? {}).filter(([id,redirect]) =>
+    /^[A-Z0-9]{1,12}$/.test(id) && !Object.hasOwn(bays,id) &&
+    typeof redirect?.code === 'string' && /^[A-Z0-9]{1,8}$/.test(redirect.code) &&
+    typeof redirect.destination === 'string' && Object.hasOwn(bays,redirect.destination))
+    .map(([id,{code,destination}]) => [id,{code,destination}]));
+  const trafficBays = Object.fromEntries(Object.keys(FLOW_LABELS).map(flow => {
+    const id = raw.trafficBays?.[flow];
+    return [flow,typeof id === 'string' && Object.hasOwn(bays,id) ? id : ''];
+  }));
+  const colors = Object.fromEntries(Object.keys(COLOR_LABELS).map(key => {
+    const value = raw.colors?.[key];
+    return [key,typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallbackColors[key]];
+  }));
+  return {bays,order:[...raw.order],redirects,trafficBays,colors};
+}
+function addDefaultBays(layout) {
+  const previousSize = layout.order.length;
+  for (const [code,anchor] of [['APP','ARR'],['PARK','GND']]) {
+    if (bayForCode(code,layout) || layout.order.length >= 30) continue;
+    layout.bays[code] = {...DEFAULTS.bays[code]};
+    const index = layout.order.findIndex(id => layout.bays[id].code === anchor);
+    layout.order.splice(index < 0 && code === 'PARK' ? layout.order.length : index + 1,0,code);
+  }
+  return layout.order.length !== previousSize;
+}
+function loadBayLayout(settings) {
+  let layout = decodeBayLayout(settings);
+  let saved;
+  try {
+    saved = localStorage.getItem(BAY_LAYOUT_KEY);
+    if (saved) layout = decodeBayLayout(JSON.parse(saved),settings.colors);
+  } catch { /* La disposition du tableau courant sert de point de départ. */ }
+  if (addDefaultBays(layout)) saved = null;
+  if (!saved) {
+    try { localStorage.setItem(BAY_LAYOUT_KEY,JSON.stringify(layout)); }
+    catch { /* Les baies par défaut restent disponibles pour cette session. */ }
+  }
+  return layout;
+}
+function saveBayLayout(settings,transfers = new Map(),trafficBays = sharedBayLayout.trafficBays) {
+  const {bays,order,colors} = settings;
+  const redirects = Object.fromEntries(Object.entries(sharedBayLayout.redirects).map(([id,redirect]) =>
+    [id,{...redirect,destination:transfers.get(redirect.destination) ?? redirect.destination}]));
+  for (const [id,destination] of transfers) {
+    const previous = sharedBayLayout.bays[id];
+    if (previous) redirects[id] = {code:previous.code,destination};
+  }
+  const layout = decodeBayLayout({bays,order,redirects,trafficBays,colors});
+  addDefaultBays(layout);
+  persistBayLayout(layout);
+}
+function persistBayLayout(layout) {
+  try { localStorage.setItem(BAY_LAYOUT_KEY,JSON.stringify(layout)); }
+  catch { throw new Error('Impossible d’enregistrer les réglages communs dans ce navigateur.'); }
+  sharedBayLayout = layout;
+}
+function applyBayLayout(db,layout) {
+  const {bays,order,redirects,trafficBays,colors} = layout;
+  const previous = db.settings.bays;
+  function destination(flight) {
+    const id = flight.bay;
+    const oldCode = previous[id]?.code;
+    if (Object.hasOwn(bays,id) && (db.sharedBays || bays[id].code === oldCode)) return id;
+    const redirect = Object.hasOwn(redirects,id) ? redirects[id] : null;
+    if (redirect && (db.sharedBays || redirect.code === oldCode)) return redirect.destination;
+    return bayForCode(oldCode,layout) ?? bayForCode(STATUS[flight.status]?.[0],layout) ?? order[0];
+  }
+  const kept = [];
+  const moved = [];
+  for (const flight of db.flights) {
+    const previousBay = destination(flight);
+    const inApproachArea = flight.ivao?.inApproachArea;
+    const route = flight.ivao && !flight.ivao.locked.includes('bay') &&
+      (dedicatedNetworkBayCode(flight.flow,flight.status,inApproachArea) || trafficBays[flight.flow] ||
+        departureInClearance(flight.flow,flight.status,previousBay,layout));
+    const bay = route ? bayForNetworkFlight(flight.flow,flight.status,previousBay,layout,inApproachArea) : previousBay;
+    if (bay === flight.bay) kept.push(flight);
+    else moved.push({...flight,bay});
+  }
+  db.flights = kept.concat(moved);
+  const counts = new Map();
+  for (const flight of db.flights) counts.set(flight.bay,(counts.get(flight.bay) ?? 0) + 1);
+  db.archive = db.archive.map(flight => {
+    const bay = destination(flight);
+    return bay === flight.bay ? flight : {...flight,bay,index:counts.get(bay) ?? 0};
+  });
+  db.settings = {...db.settings,bays:copy(bays),order:[...order],colors:{...db.settings.colors,...colors}};
+  db.sharedBays = true;
+}
+function normalizeApproach(raw) {
+  const radiusNm = Number(raw?.radiusNm ?? DEFAULTS.approach.radiusNm);
+  const ceilingFt = Number(raw?.ceilingFt ?? DEFAULTS.approach.ceilingFt);
+  validate(Number.isInteger(radiusNm) && radiusNm >= 5 && radiusNm <= 150,'Rayon d’approche : 5 à 150 NM.');
+  validate(Number.isInteger(ceilingFt) && ceilingFt >= 1000 && ceilingFt <= 35000,'Plafond d’approche : 1 000 à 35 000 ft.');
+  return {radiusNm,ceilingFt};
+}
+function normalizeSettings(raw) {
+  const airport = upper(raw.airport);
+  const airportName = String(raw.airportName ?? '').trim();
+  const qnh = Number(raw.qnh);
+  const {runways,order,colors} = raw;
+  validate(/^[A-Z]{4}$/.test(airport) && airportName.length > 0 && airportName.length <= 120,'Aérodrome : code OACI à 4 lettres et nom requis.');
+  validate(Number.isInteger(qnh) && qnh >= 850 && qnh <= 1100,'QNH simulé : entier compris entre 850 et 1100 hPa.');
+  validate(Array.isArray(runways) && runways.length <= 12 && new Set(runways).size === runways.length &&
+    runways.every(r => typeof r === 'string' && RUNWAY.test(r)),'Pistes : jusqu’à 12 désignations distinctes, par exemple 26L, 27R.');
+  const bays = normalizeBays(raw.bays ?? Object.fromEntries(
+    Object.entries(DEFAULTS.bays).filter(([id]) => order?.includes(id))
+  ),order);
+  const approach = normalizeApproach(raw.approach);
+  const palette = {};
+  for (const key of Object.keys(COLOR_LABELS)) {
+    const legacy = key === 'ifr' ? colors?.arr : key === 'helico' ? colors?.dep : undefined;
+    const value = colors?.[key] ?? legacy ?? DEFAULTS.colors[key];
+    validate(typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value),'Couleur invalide.');
+    palette[key] = value;
+  }
+  const manexUrl = String(raw.manexUrl ?? '').trim();
+  if (manexUrl) {
+    let url;
+    try { url = new URL(manexUrl); } catch { /* La validation affiche un message unique. */ }
+    validate(manexUrl.length <= 2048 && url?.protocol === 'https:' && !url.username && !url.password,
+      'Le lien MANEX doit être une adresse HTTPS valide.');
+  }
+  return {airport,airportName,qnh,runways:[...runways],order:[...order],bays,colors:palette,manexUrl,approach};
+}
+function sessionParameters({airport,airportName,qnh,runways,manexUrl,approach}) {
+  return {airport,airportName,qnh,runways,manexUrl,approach};
+}
+function sessionParametersKey(db) {
+  return profileKey(db) + '.settings';
+}
+function restoreSessionParameters(db) {
+  try {
+    const serialized = localStorage.getItem(sessionParametersKey(db));
+    if (!serialized) return;
+    const parameters = sessionParameters(JSON.parse(serialized));
+    const saved = normalizeSettings({...db.settings,...parameters,approach:parameters.approach ?? db.settings.approach});
+    if (db.service && saved.airport !== db.settings.airport) return;
+    db.settings = saved;
+  } catch { /* La sauvegarde du tableau fournit les paramètres de secours. */ }
+}
+function normalizeService(raw,airport) {
+  const station = upper(raw?.station);
+  validate(!station || (IVAO_STATION.test(station) && station.startsWith(airport + '_')),'Position IVAO incompatible avec l’aérodrome.');
+  validate(Array.isArray(raw?.ends) && raw.ends.length <= 150,'Catalogue de pistes invalide.');
+  const ids = new Set();
+  const ends = raw.ends.map(end => {
+    validate(end && typeof end.id === 'string' && RUNWAY.test(end.id) && !ids.has(end.id),'Désignation de piste invalide.');
+    validate(end.heading === null || (Number.isFinite(end.heading) && end.heading >= 0 && end.heading <= 360),'Orientation de piste invalide.');
+    validate(Number.isInteger(end.length) && end.length >= 0 && end.length <= 20000,'Longueur de piste invalide.');
+    validate(typeof end.surface === 'string' && end.surface.length <= 80,'Surface de piste invalide.');
+    ids.add(end.id);
+    return {id:end.id,heading:end.heading,length:end.length,surface:end.surface};
+  });
+  const reference = raw.reference;
+  const validPoint = Array.isArray(reference) && reference.length === 2 && reference.every(Number.isFinite) &&
+    Math.abs(reference[0]) <= 90 && Math.abs(reference[1]) <= 180;
+  return {station,ends,reference:validPoint ? [...reference] : null};
+}
+const sortTime = (a,b) => a.at.localeCompare(b.at);
+function blankState() {
+  return {version:1,settings:copy(DEFAULTS),service:null,flights:[],archive:[],log:[],movements:[],dismissedIvao:[]};
+}
+function makeFlight(input,bays) {
+  return {id:uid(),...normalizeFlight(input,bays)};
+}
+const demo = [
+  ['AFR1541','A20N','LIRF','ARR','approach','26L','3421',4,'4200 FT','3000 FT','ILS 26L','180','', 'Séquence 01'],
+  ['BAW316','A320','EGLL','ARR','landClear','27R','5272',2,'1800 FT','','ILS 27R','','','Finale'],
+  ['DLH1028','A321','EDDF','ARR','announced','26L','2634',12,'FL100','FL080','DCT LORNI','220','', ''],
+  ['AFR7704','BCS3','LFMN','DEP','ifrClear','26R','4201',18,'','5000 FT','DCT OKASI','','',''],
+  ['EZY43ML','A320','LSGG','DEP','filed','26R','5263',24,'','','DCT BUBLI','','',''],
+  ['KLM1412','E190','EHAM','DEP','startClear','27L','2732',16,'','5000 FT','DCT NURMO','','',''],
+  ['AFR1380','A320','EGLL','DEP','holding','27L','4305',4,'','5000 FT','DCT ATREX','','','Point d’attente'],
+  ['UAE74','A388','OMDB','DEP','lineUp','26R','6264',2,'','5000 FT','DCT LANVI','','',''],
+  ['SWR632','BCS1','LSZH','ARR','vacated','26L','5126',-6,'','','','','','Piste dégagée'],
+  ['AFR1775','A319','LFLL','ARR','groundTaxi','27R','4142',-9,'','','','','','Vers poste'],
+  ['ACA873','B77W','CYYZ','DEP','taxiOut','27L','6234',9,'','5000 FT','DCT EVX','','',''],
+  ['IBE578','A21N','LEMD','DEP','taxiClear','26R','5143',11,'','5000 FT','DCT PILUL','','',''],
+  ['AFR1814','A320','LEBL','DEP','climbing','26R','4423',-4,'3900 FT','5000 FT','DCT PILUL','','',''],
+  ['SAS568','A20N','EKCH','DEP','transfer','27L','5024',-7,'FL070','FL090','DCT NURMO','','','', '124.355']
+];
+function seedState() {
+  const db = blankState();
+  db.flights = demo.map(([callsign,aircraft,remote,flow,status,runway,squawk,offset,current,assigned,route,speed,heading,remarks,frequency]) =>
+    makeFlight({callsign,aircraft,wake:TYPES[aircraft] ?? 'M',origin:flow === 'ARR' ? remote : 'LFPG',
+      destination:flow === 'DEP' ? remote : 'LFPG',rules:'IFR',flow,runway,squawk,estimate:utcMinute(offset),
+      current,assigned,route,speed,heading,remarks,frequency,status,bay:STATUS[status][0]},db.settings.bays));
+  const epoch = Date.now();
+  const samples = [
+    ['AFR1775','landed',9],['SAS568','airborne',7],['SWR632','landed',6],['SWR632','vacated',5],
+    ['AFR1814','airborne',4],['AFR1380','holding',3],['BAW316','landClear',2],['UAE74','lineUp',1]
+  ];
+  db.movements = samples.map(([callsign,status,minutes]) => ({
+    at:new Date(epoch - minutes * 60000).toISOString(),callsign,status,runway:db.flights.find(f => f.callsign === callsign).runway
+  }));
+  return db;
+}
+function decodeState(raw) {
+  validate(raw && raw.version === 1 && raw.settings,'Fichier non reconnu. Un export EFS version 1 est requis.');
+  const db = blankState();
+  db.sharedBays = raw.sharedBays === true;
+  db.settings = normalizeSettings(raw.settings);
+  for (const [code,name] of Object.entries(LEGACY_BAY_NAMES)) {
+    const bay = db.settings.bays[code];
+    if (bay?.code === code && bay.name === name) bay.name = BAYS[code];
+  }
+  db.service = raw.service == null ? null : normalizeService(raw.service,db.settings.airport);
+  const ids = new Set();
+  const activeCallsigns = new Set();
+  const activeLinks = new Set();
+  function records(key,parse) {
+    validate(Array.isArray(raw[key]),'Collection invalide : ' + key + '.');
+    return raw[key].map(item => {
+      validate(item && typeof item === 'object' && !Array.isArray(item),'Entrée invalide dans ' + key + '.');
+      return parse(item);
+    });
+  }
+  function timestamp(at) {
+    validate(typeof at === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(at) &&
+      Number.isFinite(Date.parse(at)) && new Date(at).toISOString() === at,'Horodatage UTC invalide.');
+    return at;
+  }
+  function decodeFlight(item,archived) {
+    validate(typeof item.id === 'string' && /^[\w-]{1,80}$/.test(item.id) && !ids.has(item.id),'Identifiant de fiche de vol invalide ou dupliqué.');
+    ids.add(item.id);
+    const f = {id:item.id,...normalizeFlight(item,db.settings.bays)};
+    if (archived) {
+      f.archivedAt = timestamp(item.archivedAt);
+      validate(Number.isSafeInteger(item.index) && item.index >= 0,'Rang d’archive invalide.');
+      f.index = item.index;
+    } else {
+      validate(!activeCallsigns.has(f.callsign),'Indicatif actif dupliqué : ' + f.callsign + '.');
+      activeCallsigns.add(f.callsign);
+      if (f.ivao) {
+        validate(!activeLinks.has(f.ivao.key),'Connexion IVAO active dupliquée.');
+        activeLinks.add(f.ivao.key);
+      }
+    }
+    return f;
+  }
+  db.flights = records('flights', item => decodeFlight(item,false));
+  db.archive = records('archive', item => decodeFlight(item,true));
+  if (raw.dismissedIvao != null) db.dismissedIvao = records('dismissedIvao', ({key,at,reason}) => {
+    validate(typeof key === 'string' && /^\d{1,20}$/.test(key) && Number.isSafeInteger(at) && at > 0,'Masquage IVAO invalide.');
+    return {key,at,reason:reason === 'reset' || reason === 'delete' ? reason : ''};
+  });
+  db.log = records('log', ({at,callsign,field,before,after}) => {
+    validate([callsign,field,before,after].every(value => typeof value === 'string' && value.length <= 600),'Entrée du journal invalide.');
+    return {at:timestamp(at),callsign,field,before,after};
+  }).sort(sortTime);
+  const maskEvents = db.log.filter(entry => entry.field === 'Suppression' ||
+    (entry.callsign === 'SYSTÈME' && entry.field === 'Remise à zéro'));
+  for (const mask of db.dismissedIvao) {
+    if (mask.reason) continue;
+    // Les anciennes sauvegardes identifient l’action dans le journal.
+    const event = maskEvents.find(entry => Date.parse(entry.at) >= mask.at);
+    mask.reason = event?.field === 'Remise à zéro' ? 'reset' : 'delete';
+  }
+  db.movements = records('movements', ({at,callsign,runway,status}) => {
+    validate(typeof callsign === 'string' && /^[A-Z0-9]{2,7}$/.test(callsign) &&
+      typeof runway === 'string' && RUNWAY.test(runway) && Object.hasOwn(MOVEMENTS,status),'Mouvement invalide.');
+    return {at:timestamp(at),callsign,runway,status};
+  }).sort(sortTime);
+  return db;
+}
+
+let state;
+let startupMessage = '';
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  state = saved ? decodeState(JSON.parse(saved)) : seedState();
+} catch {
+  state = seedState();
+  startupMessage = 'Sauvegarde locale inaccessible ou invalide. Le tableau de démonstration est chargé en mémoire.';
+}
+restoreSessionParameters(state);
+let sharedBayLayout = loadBayLayout(state.settings);
+applyBayLayout(state,sharedBayLayout);
+let selectedId = null;
+let toastTimer;
+function toast(message) {
+  clearTimeout(toastTimer);
+  $('toast').textContent = message;
+  $('toast').hidden = false;
+  toastTimer = setTimeout(() => $('toast').hidden = true,4500);
+}
+function save(saveParameters = false) {
+  try {
+    if (saveParameters) localStorage.setItem(sessionParametersKey(state),JSON.stringify(sessionParameters(state.settings)));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    $('save-state').textContent = 'SAUVEGARDÉ · ' + utcMinute(0) + 'Z';
+    $('system-state').textContent = 'MODE LOCAL';
+  } catch {
+    $('save-state').textContent = 'SAUVEGARDE INDISPONIBLE';
+    $('system-state').textContent = 'MÉMOIRE SEULE';
+    toast('Sauvegarde locale indisponible. Les données de session peuvent être exportées en JSON.');
+  }
+}
+function commit(saveParameters = false) {
+  render();
+  save(saveParameters);
+}
+function isActiveFlight(flight) {
+  return !flight.ivao?.absent;
+}
+function activeFlight(id) {
+  return state.flights.find(f => f.id === id && isActiveFlight(f));
+}
+function bayCode(id) {
+  return state.settings.bays[id]?.code ?? id;
+}
+function showValue(key,value) {
+  if (value === '' || value == null) return '—';
+  if (key === 'status') return STATUS[value]?.[1] ?? value;
+  if (key === 'colorCategory') return FLIGHT_CATEGORIES[value] ?? value;
+  if (key === 'bay') return bayCode(value);
+  if (typeof value === 'boolean') return value ? 'Oui' : 'Non';
+  return String(value);
+}
+function log(callsign,field,before,after,at = now()) {
+  state.log.push({at,callsign,field,before:String(before ?? '—'),after:String(after ?? '—')});
+}
+function logMovement(f,at) {
+  if (f.runway && Object.hasOwn(MOVEMENTS,f.status)) {
+    state.movements.push({at,callsign:f.callsign,runway:f.runway,status:f.status});
+  }
+}
+function uniqueCallsign(callsign,exceptId) {
+  validate(!state.flights.some(f => f.id !== exceptId && f.callsign === callsign),'Cet indicatif est déjà actif.');
+}
+function updateFlight(old,changes,followStatus = false) {
+  const patch = {...old,...changes};
+  if (old.ivao) patch.current = old.current;
+  if (followStatus && (old.status !== patch.status || old.flow !== patch.flow)) {
+    if (old.ivao) {
+      if (!old.ivao.locked.includes('bay')) {
+        patch.bay = bayForNetworkFlight(patch.flow,patch.status,old.bay,sharedBayLayout,old.ivao.inApproachArea);
+      }
+    } else if (old.status !== patch.status) patch.bay = bayForStatus(patch.status,old.bay);
+  }
+  const updated = {id:old.id,...normalizeFlight(patch)};
+  uniqueCallsign(updated.callsign,updated.id);
+  const keys = Object.keys(FIELDS).filter(key => old[key] !== updated[key]);
+  if (!keys.length) return false;
+  if (updated.ivao) updated.ivao.locked = [...new Set([...updated.ivao.locked,
+    ...keys.filter(key => key !== 'bay' || Object.hasOwn(changes,'bay'))])];
+  const at = now();
+  for (const key of keys) log(updated.callsign,FIELDS[key],showValue(key,old[key]),showValue(key,updated[key]),at);
+  const index = state.flights.indexOf(old);
+  if (updated.bay === old.bay) state.flights[index] = updated;
+  else {
+    state.flights.splice(index,1);
+    state.flights.push(updated);
+  }
+  if (keys.includes('status')) logMovement(updated,at);
+  commit();
+  return true;
+}
+function addFlight(input,operation = 'Création') {
+  const f = makeFlight(input);
+  uniqueCallsign(f.callsign);
+  state.flights.push(f);
+  log(f.callsign,operation,'—',bayCode(f.bay) + ' · ' + STATUS[f.status][1]);
+  logMovement(f,now());
+  return f;
+}
+// Construction des strips et vue de synthèse.
+function runwayKey(runway) {
+  if (!runway) return '';
+  const number = Number(runway.slice(0,2));
+  const end = runway.slice(2);
+  const reciprocal = String((number + 17) % 36 + 1).padStart(2,'0') + ({L:'R',R:'L',C:'C'}[end] ?? '');
+  return [runway,reciprocal].sort().join('/');
+}
+function conflicts() {
+  const bySurface = new Map();
+  for (const f of state.flights) {
+    if (!isActiveFlight(f) || !RWY_RESERVED.includes(f.status)) continue;
+    const key = runwayKey(f.runway);
+    if (!bySurface.has(key)) bySurface.set(key,[]);
+    bySurface.get(key).push(f);
+  }
+  return [...bySurface.values()].filter(group => group.length > 1);
+}
+function configuredRunways() {
+  return [...new Set([...activeRunways(),...serviceRunways(),...state.flights.filter(isActiveFlight).map(f => f.runway).filter(Boolean)])].sort();
+}
+function statusOptions(values,value) {
+  return values.map(key => option(key,STATUS[key][1],value)).join('');
+}
+function cell(key,value,display,label,vertical = false) {
+  const caption = label ?? FIELDS[key];
+  const title = FIELDS[key] + ' · ' + (value || '—');
+  return '<button type="button" class="cell' + (vertical ? ' vertical' : '') + (['assigned','speed','heading','frequency'].includes(key) ? ' assigned' : '') +
+    '" data-field="' + key + '" title="' + esc(title) + '" aria-label="' + esc(title) + '">' +
+    '<small>' + esc(caption) + '</small><b>' + esc(display || '—') + '</b></button>';
+}
+function altitudeTitle(f) {
+  const label = f.ivao ? 'Altitude observée IVAO' : 'Altitude ou niveau actuel';
+  const time = f.ivao?.altitudeAt;
+  return label + ' · ' + (f.current || '—') + (time ? ' · ' + shortUtc(time,true) : '');
+}
+function stripAlert(f) {
+  const observed = f.ivao?.observedSquawk;
+  const codes = f.ivao && !f.ivao.locked.includes('squawk') ? [observed || f.squawk] : [f.squawk,observed];
+  const messages = [...new Set(codes)].filter(code => Object.hasOwn(EMERGENCY_CODES,code))
+    .map(code => code + ' · ' + EMERGENCY_CODES[code]);
+  if (f.attention) messages.push('SIGNALEMENT CONTRÔLEUR');
+  return messages.join(' / ');
+}
+function flightColorCategory(f) {
+  if (f.colorCategory) return f.colorCategory;
+  if (f.ivao?.category) return f.ivao.category;
+  if (HELICOPTER_TYPES.has(f.aircraft)) return 'HELICO';
+  if (f.rules === 'VFR' || f.rules === 'Z') return 'VFR';
+  if (f.rules === 'IFR' || f.rules === 'Y') return 'IFR';
+  return '';
+}
+function strip(f,hasConflict) {
+  const attention = hasConflict || f.attention;
+  const alert = stripAlert(f);
+  const category = flightColorCategory(f);
+  const type = category.toLowerCase();
+  const current = f.current || '—';
+  const statusClass = RWY_OCCUPIED.includes(f.status) ? ' occupied' : RWY_CLEARANCE.includes(f.status) ? ' clearance' : '';
+  const supplementary = [
+    category && (f.colorCategory || category !== f.rules) &&
+      '<button type="button" class="cell category-tag" data-field="colorCategory" title="Modifier la catégorie de couleur">' +
+      esc(FLIGHT_CATEGORIES[category].toUpperCase()) + '</button>',
+    f.heading && cell('heading',f.heading,f.heading + '°','CAP'),
+    f.frequency && cell('frequency',f.frequency,f.frequency,'TRANSFERT'),
+    f.remarks && cell('remarks',f.remarks,f.remarks,'REM.'),
+    f.ivao && '<button type="button" class="cell network-tag' + (f.ivao.absent ? ' lost' : '') +
+      '" data-flight title="Afficher le suivi IVAO">' + (f.ivao.absent ? 'IVAO · SIGNAL PERDU' : 'IVAO') + '</button>'
+  ].filter(Boolean).join('');
+  return '<article aria-label="Fiche de vol ' + esc(f.callsign) + '" class="strip ' + type +
+    (selectedId === f.id ? ' selected' : '') + (attention ? ' attention' : '') + (alert ? ' emergency' : '') +
+    (f.processed ? ' processed' : '') + '" data-id="' + f.id + '">' +
+    '<div class="emergency-banner"' + (alert ? '' : ' hidden') + '>' + esc(alert) + '</div>' +
+    '<div class="row identity">' +
+      '<button class="grip" type="button" data-grip title="Déplacer la fiche de vol" aria-label="Déplacer ' + f.callsign + '">' + icon('grip') + '</button>' +
+      '<button class="cell" type="button" data-flight title="Modifier ' + f.callsign + '"><b class="callsign">' + f.callsign + '</b>' +
+      (attention ? '<span class="flag" aria-label="Attention">!</span>' : '') + (f.processed ? '<span class="done" aria-label="Traité">✓</span>' : '') + '</button>' +
+      '<div class="cell" title="' + (f.aircraft || 'Type inconnu') + ' · sillage ' + (f.wake || 'inconnu') + '"><b>' + (f.aircraft || '—') + '</b><small>' + (f.wake || '—') + '</small></div>' +
+      '<div class="cell airport-pair" title="' + (f.origin || 'Inconnu') + ' → ' + (f.destination || 'Inconnu') + '"><b>' +
+        (f.origin || '—') + '<em>›</em>' + (f.destination || '—') + '</b></div>' +
+      '<button class="cell status' + statusClass + '" type="button" data-field="status" title="' + esc(STATUS[f.status][1]) +
+      '" aria-label="' + esc(STATUS[f.status][1]) + '"><b>' + STATUS[f.status][2] + '</b></button>' +
+      '<button class="more" type="button" data-menu aria-label="Actions ' + f.callsign + '" aria-haspopup="true">' + icon('more') + '</button>' +
+    '</div><div class="row nav">' +
+      cell('squawk',f.squawk,f.squawk,'TRANSPONDEUR',true) + cell('runway',f.runway,f.runway,'PISTE',true) +
+      cell('route',f.route,f.route,'ROUTE',true) +
+      '<div class="cell vertical" title="' + (f.flow === 'ARR' ? 'Arrivée estimée' : 'Départ estimé') + ' UTC"><small>' +
+      (f.flow === 'ARR' ? 'ARR. EST.' : 'DÉP. EST.') + '</small><b>' + (f.estimate || '—') + '</b></div>' +
+      '<div class="cell vertical" title="Règles de vol et sens du trafic"><small>' + (f.flow === 'ARR' ? 'ARR.' : 'DÉP.') + '</small><b>' + (f.rules || '—') + '</b></div>' +
+    '</div><div class="row clearances">' +
+      '<div class="cell vertical" data-observed-altitude title="' + esc(altitudeTitle(f)) + '"><small>' +
+      (f.ivao ? 'ACTUEL · IVAO' : 'ACTUEL') + '</small><b>' + current + '</b></div>' +
+      cell('assigned',f.assigned,f.assigned,'ALT. ASSIGNÉE',true) +
+      cell('speed',f.speed,f.speed && f.speed + ' KT','VIT. ASSIGNÉE',true) +
+    '</div>' + (supplementary ? '<div class="row note">' + supplementary + '</div>' : '') + '</article>';
+}
+function filterFlights(flights) {
+  const query = upper($('search').value).split(/\s+/).filter(Boolean);
+  const rules = $('filter-rules').value;
+  const flow = $('filter-flow').value;
+  const status = $('filter-status').value;
+  const runway = $('filter-runway').value;
+  return flights.filter(f => (!rules || f.rules === rules) && (!flow || f.flow === flow) &&
+    (!status || f.status === status) && (!runway || f.runway === runway) &&
+    query.every(word => [f.callsign,f.squawk,f.aircraft,f.origin,f.destination,f.runway].some(field => field.includes(word))));
+}
+function renderBoard() {
+  const active = state.flights.filter(isActiveFlight);
+  const {bays,order} = state.settings;
+  const shownBays = new Set(order.filter(id => !bays[id].hidden));
+  const visible = filterFlights(active.filter(f => shownBays.has(f.bay)));
+  const warningIds = new Set(conflicts().flat().map(f => f.id));
+  const activeFilters = filterIds.slice(1).filter(id => $(id).value).length;
+  $('filter-toggle').textContent = activeFilters ? 'FILTRES (' + activeFilters + ')' : 'FILTRES';
+  $('board-count').textContent = visible.length !== active.length ? visible.length + ' / ' + active.length + ' VOLS' : '';
+  $('board').innerHTML = Array.from(shownBays,bay => {
+    const flights = visible.filter(f => f.bay === bay);
+    const total = active.filter(f => f.bay === bay).length;
+    return '<section class="bay" data-bay="' + bay + '" aria-labelledby="bay-' + bay + '">' +
+      '<header class="bay-head"><span class="bay-code">' + bays[bay].code + '</span><h3 id="bay-' + bay + '" class="bay-title">' +
+      esc(bays[bay].name.toUpperCase()) +
+      '</h3><span class="bay-n">' + String(flights.length).padStart(2,'0') + (flights.length !== total ? ' / ' + total : '') + '</span></header>' +
+      '<div class="stack">' + (flights.length ? flights.map(f => strip(f,warningIds.has(f.id))).join('') :
+        '<div class="empty">' + (total ? 'AUCUN RÉSULTAT' : 'BAIE LIBRE · DÉPOSER ICI') + '</div>') + '</div></section>';
+  }).join('') || '<div class="empty board-empty">Toutes les baies sont masquées. Ouvre « Affichage des baies » pour les réafficher.</div>';
+}
+function renderOps() {
+  const config = state.settings;
+  const service = state.service;
+  $('manex').hidden = !service;
+  $('manex').title = 'Ouvrir le MANEX de ' + config.airport;
+  const connect = $('connect-ivao');
+  if (!connect.disabled) connect.textContent = service ? 'ACTUALISER IVAO' : 'CONNECTER IVAO';
+  connect.title = (service ? 'Actualiser le trafic IVAO de ' : 'Charger le trafic IVAO de ') + config.airport;
+  $('generate').hidden = Boolean(service);
+  const weather = freshWeather();
+  const atis = activeAtis();
+  const active = activeRunways();
+  const choices = active.length ? active : serviceRunways();
+  const preferred = runwaySuggestion(weather);
+  const catalogue = Boolean(service && !active.length);
+  const manual = Boolean(service && config.runways.length);
+  $('station-caption').textContent = service ? (service.station ? 'Position IVAO' : 'Service IVAO') : 'Aérodrome';
+  $('airport-code').textContent = service?.station || config.airport;
+  $('airport-name').textContent = config.airportName;
+  $('rwy-caption').textContent = catalogue ? 'Pistes répertoriées' : 'Pistes en service';
+  $('rwy-source').hidden = !service;
+  $('rwy-source').textContent = manual ? 'Configuration manuelle' : atis ? 'ATIS IVAO · ' + atis.callsign :
+    preferred ? 'Sans piste ATIS · suggestion vent ' + preferred.id : 'Pistes actives non annoncées';
+  $('weather-caption').textContent = service ? 'QNH / vent METAR' : 'QNH simulé';
+  $('qnh').textContent = service ? (weather ? weatherDisplay(weather) : '— / —') : config.qnh + ' hPa';
+  $('metar-source').hidden = !service;
+  $('metar-source').textContent = weather ? 'IVAO · ' + shortUtc(weather.at) :
+    feeds.weather.pending ? 'Chargement IVAO…' : feeds.weather.data ? 'METAR ancien · voir détails' :
+      feeds.weather.error ? 'Flux météo inaccessible' : 'METAR indisponible';
+  const traffic = $('traffic-source');
+  const tracker = feeds.tracker;
+  traffic.hidden = !hasNetworkTraffic();
+  traffic.textContent = tracker.error ? 'Trafic IVAO indisponible' : tracker.pending && !tracker.syncedAt ?
+    'Trafic IVAO en cours…' : tracker.syncedAt ?
+      state.flights.filter(f => f.ivao && !f.ivao.absent).length + ' IVAO · ' + shortUtc(tracker.syncedAt,true) +
+      (tracker.collisions ? ' · ' + tracker.collisions + ' indicatif(s) en conflit' : '') : 'Trafic IVAO en attente';
+  const clash = conflicts();
+  const conflictKeys = new Set(clash.map(group => runwayKey(group[0].runway)));
+  const runwayTop = $('runways-top');
+  const markup = choices.map(r =>
+    '<button class="btn rwy-chip' + (catalogue ? ' catalogue' : '') + (catalogue && r === preferred?.id ? ' suggested' : '') +
+    (conflictKeys.has(runwayKey(r)) ? ' warn' : '') + '" data-runway="' + r + '" title="Piste ' + r + '">' + r + '</button>').join('') ||
+    '<span class="muted">Aucune</span>';
+  if (runwayTop.dataset.markup !== markup) {
+    runwayTop.dataset.markup = markup;
+    runwayTop.innerHTML = markup;
+  }
+}
+function render() {
+  const config = state.settings;
+  Object.entries(config.colors).forEach(([key,value]) => document.documentElement.style.setProperty('--' + key,value));
+  $('flight-count').textContent = String(state.flights.filter(isActiveFlight).length).padStart(2,'0');
+  renderOps();
+  const clash = conflicts();
+  $('alert').hidden = !clash.length;
+  $('alert').innerHTML = clash.length ? '<span><b>VIGILANCE PISTE · SIMULATION</b> — ' + clash.map(group =>
+    [...new Set(group.map(f => f.runway))].join('/') + ' : ' + group.map(f => f.callsign).join(' / ')).join(' · ') +
+    '</span><button id="open-alert" class="btn">VOIR LES PISTES</button>' : '';
+  const filter = $('filter-runway');
+  const previous = filter.value;
+  filter.innerHTML = option('','Toutes pistes','') + configuredRunways().map(r => option(r,r,previous)).join('');
+  renderBoard();
+}
+function selectStrip(id) {
+  selectedId = id;
+  $('board').querySelector('.selected')?.classList.remove('selected');
+  $('board').querySelector('[data-id="' + id + '"]')?.classList.add('selected');
+}
+
+// Éditeurs de champ et menu contextuel.
+function fieldControl(key,f) {
+  const value = f[key] ?? '';
+  const attr = ' name="' + key + '"';
+  const select = choices => '<select' + attr + '>' + choices + '</select>';
+  if (key === 'status') return select(statusOptions(validStates(f.flow,f.rules),value));
+  if (key === 'colorCategory') return select(option('','Automatique',value) +
+    Object.entries(FLIGHT_CATEGORIES).map(([category,label]) => option(category,label,value)).join(''));
+  if (key === 'flow') return select(option('ARR','Arrivée',value) + option('DEP','Départ',value));
+  if (key === 'rules' || key === 'wake') {
+    const choices = key === 'rules' ? Object.entries(FLIGHT_RULES) : ['L','M','H','J'].map(v => [v,v]);
+    return select((f.ivao ? option('','Inconnu',value) : '') + choices.map(([v,label]) => option(v,label,value)).join(''));
+  }
+  if (key === 'remarks') return '<textarea' + attr + ' rows="2" maxlength="240" placeholder="Remarque du contrôleur">' + esc(value) + '</textarea>';
+  const required = key === 'callsign' || (!f.ivao && ['aircraft','origin','destination'].includes(key)) ? ' required' : '';
+  const placeholders = {runway:'26R',squawk:'4271',current:'3000 FT',assigned:'FL120',speed:'220 KT',heading:'270',frequency:'121.800',route:'DCT / SID / STAR'};
+  const lengths = {callsign:7,aircraft:4,origin:4,destination:4,squawk:4,runway:3,route:600};
+  const observed = key === 'current' && f.ivao;
+  const hint = placeholders[key] && !observed ? ' placeholder="' + placeholders[key] + '"' : '';
+  const limit = lengths[key] ? ' maxlength="' + lengths[key] + '"' : '';
+  const list = key === 'runway' ? ' list="runway-options"' : '';
+  const type = key === 'estimate' ? 'time' : 'text';
+  return '<input' + attr + required + hint + limit + list + (observed ? ' readonly title="' + esc(altitudeTitle(f)) + '"' : '') +
+    ' type="' + type + '" value="' + esc(value) + '" autocomplete="off">' +
+    (list ? '<datalist id="runway-options">' + configuredRunways().map(r => option(r,r)).join('') + '</datalist>' : '');
+}
+let popAnchor = null;
+function closePopover(restore = false) {
+  const pop = $('popover');
+  pop.hidden = true;
+  pop.replaceChildren();
+  if (restore && popAnchor?.isConnected) popAnchor.focus({preventScroll:true});
+  popAnchor = null;
+}
+function showPopover(content,anchor,point,menu = false) {
+  const pop = $('popover');
+  pop.className = menu ? 'popover menu' : 'popover';
+  pop.innerHTML = content;
+  pop.hidden = false;
+  popAnchor = anchor;
+  const rect = anchor.getBoundingClientRect();
+  pop.style.left = Math.max(8,Math.min(point?.x ?? rect.left,innerWidth - pop.offsetWidth - 8)) + 'px';
+  pop.style.top = Math.max(8,Math.min(point?.y ?? rect.bottom + 4,innerHeight - pop.offsetHeight - 8)) + 'px';
+}
+function editField(f,key,anchor,point) {
+  showPopover('<form><label class="field">' + esc(f.callsign + ' / ' + FIELDS[key]) + fieldControl(key,f) +
+    '</label><div class="error" role="alert"></div><div class="inline"><button class="btn primary">VALIDER</button>' +
+    '<button class="btn" type="button" data-cancel>ANNULER</button></div></form>',anchor,point);
+  const pop = $('popover');
+  const input = pop.querySelector('[name]');
+  input.focus({preventScroll:true});
+  if (input.type === 'text') input.select();
+  pop.querySelector('[data-cancel]').onclick = () => closePopover(true);
+  pop.querySelector('form').onsubmit = event => {
+    event.preventDefault();
+    try {
+      updateFlight(activeFlight(f.id),{[key]:input.value},key === 'status');
+      closePopover();
+      $('board').querySelector('[data-id="' + f.id + '"] [data-field="' + key + '"]')?.focus({preventScroll:true});
+    } catch (error) {
+      pop.querySelector('.error').textContent = error.message;
+    }
+  };
+}
+function duplicateCallsign(base) {
+  for (let counter = 1; counter <= 99999; counter++) {
+    const suffix = String(counter);
+    const candidate = base.slice(0,7 - suffix.length) + suffix;
+    if (!state.flights.some(f => f.callsign === candidate)) return candidate;
+  }
+  throw new Error('Aucun indicatif libre pour ce duplicata.');
+}
+function openMenu(f,anchor,point) {
+  selectStrip(f.id);
+  const menu = [
+    ['Modifier le vol',() => flightDialog(f)],
+    ['Changer la catégorie de couleur',() => editField(f,'colorCategory',anchor,point)],
+    ['Changer le statut',() => editField(f,'status',anchor,point)],
+    ['Assigner une piste',() => editField(f,'runway',anchor,point)],
+    ['Assigner un cap',() => editField(f,'heading',anchor,point)],
+    ['Assigner un canal de transfert',() => editField(f,'frequency',anchor,point)],
+    ['Ajouter une remarque',() => editField(f,'remarks',anchor,point)],
+    ['Déplacer / réordonner',() => moveDialog(f)],
+    ['Dupliquer la fiche de vol',() => flightDialog(null,{...f,ivao:null,callsign:duplicateCallsign(f.callsign),processed:false,attention:false})],
+    [f.processed ? 'Marquer comme non traité' : 'Marquer comme traité',() => updateFlight(f,{processed:!f.processed})],
+    [f.attention ? 'Retirer le signalement' : 'Signaler pour attention',() => updateFlight(f,{attention:!f.attention})],
+    ['Archiver le vol',() => archiveFlight(f)],
+    ['Supprimer le vol…',() => confirmDialog('SUPPRIMER LE VOL','Supprimer définitivement la fiche de vol ' + f.callsign + ' ?',() => {
+      if (f.ivao) dismissIvao(f.ivao.key);
+      state.flights = state.flights.filter(item => item.id !== f.id);
+      log(f.callsign,'Suppression',bayCode(f.bay),'—');
+      commit();
+    })]
+  ];
+  showPopover(menu.map(([label],index) => '<button type="button" data-action="' + index + '"' +
+    (index === menu.length - 1 ? ' class="danger"' : '') + '>' + esc(label) + '</button>').join(''),anchor,point,true);
+  const pop = $('popover');
+  pop.querySelector('button').focus({preventScroll:true});
+  for (const button of pop.querySelectorAll('button')) button.onclick = () => {
+    closePopover();
+    try { menu[Number(button.dataset.action)][1](); }
+    catch (error) { toast(error.message); }
+  };
+}
+$('board').addEventListener('click',event => {
+  const card = event.target.closest('.strip');
+  if (!card) return;
+  const flight = activeFlight(card.dataset.id);
+  const button = event.target.closest('button');
+  selectStrip(flight.id);
+  if (!button) return;
+  if (button.hasAttribute('data-menu')) openMenu(flight,button);
+  else if (button.hasAttribute('data-flight')) flightDialog(flight);
+  else if (button.dataset.field) editField(flight,button.dataset.field,button);
+  else if (button.hasAttribute('data-grip')) moveDialog(flight);
+});
+$('board').addEventListener('contextmenu',event => {
+  const card = event.target.closest('.strip');
+  if (!card) return;
+  event.preventDefault();
+  openMenu(activeFlight(card.dataset.id),card.querySelector('[data-menu]'),{x:event.clientX,y:event.clientY});
+});
+document.addEventListener('pointerdown',event => {
+  if (!event.target.closest('#popover')) closePopover();
+});
+document.addEventListener('keydown',event => {
+  if (event.key === 'Escape' && !$('popover').hidden) {
+    event.preventDefault();
+    closePopover(true);
+  }
+});
+window.addEventListener('resize',() => closePopover());
+
+// Déplacement par pointeur capturé. Le rang est relatif au strip cible.
+function moveFlight(f,bay,targetId,after) {
+  if (!f || targetId === f.id) return;
+  const oldBay = f.bay;
+  const oldStack = state.flights.filter(item => item.bay === oldBay && isActiveFlight(item));
+  const oldRank = oldStack.indexOf(f);
+  const remaining = state.flights.filter(item => item.id !== f.id);
+  const stack = remaining.filter(item => item.bay === bay && isActiveFlight(item));
+  let rank = stack.findIndex(item => item.id === targetId);
+  rank = rank < 0 ? stack.length : rank + Number(after);
+  if (bay === oldBay && rank === oldRank) return;
+  const before = stack[rank];
+  const last = stack.at(-1);
+  const position = before ? remaining.indexOf(before) : last ? remaining.indexOf(last) + 1 : remaining.length;
+  const at = now();
+  if (bay !== oldBay) log(f.callsign,'Baie',bayCode(oldBay),bayCode(bay),at);
+  log(f.callsign,'Rang',bayCode(oldBay) + ' #' + (oldRank + 1),bayCode(bay) + ' #' + (rank + 1),at);
+  const moved = {...f,bay};
+  if (f.ivao) moved.ivao = {...f.ivao,locked:[...new Set([...f.ivao.locked,'bay'])]};
+  remaining.splice(position,0,moved);
+  state.flights = remaining;
+  commit();
+}
+let drag = null;
+let suppressGripClick = 0;
+function dragTarget() {
+  const hit = document.elementFromPoint(drag.x,drag.y);
+  const bay = hit?.closest('[data-bay]');
+  let card = hit?.closest('.strip');
+  let after = false;
+  if (card) {
+    const rect = card.getBoundingClientRect();
+    after = drag.y >= rect.top + rect.height / 2;
+  } else if (bay && hit?.closest('.stack')) {
+    const cards = [...bay.querySelectorAll('.strip')];
+    card = cards.find(item => drag.y < item.getBoundingClientRect().top) ?? cards.at(-1);
+    after = Boolean(card && drag.y >= card.getBoundingClientRect().bottom);
+  }
+  drag.target?.bay?.classList.remove('drop');
+  drag.target?.card?.classList.remove('drop-before','drop-after');
+  drag.target = bay ? {bay,card,after} : null;
+  bay?.classList.add('drop');
+  if (card !== drag.source) card?.classList.add(after ? 'drop-after' : 'drop-before');
+  drag.ghost.style.left = Math.max(0,Math.min(innerWidth - drag.ghost.offsetWidth - 4,drag.x + 12)) + 'px';
+  drag.ghost.style.top = Math.max(0,Math.min(innerHeight - drag.ghost.offsetHeight - 4,drag.y + 12)) + 'px';
+}
+function dragFrame() {
+  if (!drag?.ghost) return;
+  const margin = 62;
+  if (drag.y < margin) window.scrollBy(0,-Math.ceil((margin - drag.y) / 5));
+  if (drag.y > innerHeight - margin) window.scrollBy(0,Math.ceil((drag.y - innerHeight + margin) / 5));
+  dragTarget();
+  drag.frame = requestAnimationFrame(dragFrame);
+}
+function endDrag(event,cancel = false) {
+  if (!drag || (event && event.pointerId !== drag.pointerId)) return;
+  if (drag.ghost && !cancel && event) {
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    dragTarget();
+  }
+  const operation = drag;
+  drag = null;
+  if (!operation.ghost) return;
+  suppressGripClick = performance.now() + 360;
+  cancelAnimationFrame(operation.frame);
+  operation.ghost.remove();
+  operation.source.classList.remove('drag-source');
+  operation.target?.bay?.classList.remove('drop');
+  operation.target?.card?.classList.remove('drop-before','drop-after');
+  document.body.classList.remove('dragging');
+  const target = operation.target;
+  if (!cancel && target) moveFlight(activeFlight(operation.source.dataset.id),target.bay.dataset.bay,target.card?.dataset.id,target.after);
+}
+$('board').addEventListener('click',event => {
+  if (event.target.closest('[data-grip]') && performance.now() < suppressGripClick) event.stopImmediatePropagation();
+},true);
+$('board').addEventListener('pointerdown',event => {
+  const grip = event.target.closest('[data-grip]');
+  if (!grip || drag || event.button !== 0 || !event.isPrimary) return;
+  drag = {source:grip.closest('.strip'),pointerId:event.pointerId,startX:event.clientX,startY:event.clientY};
+  grip.setPointerCapture(event.pointerId);
+});
+$('board').addEventListener('pointermove',event => {
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  if (!drag.ghost && Math.hypot(event.clientX - drag.startX,event.clientY - drag.startY) < 6) return;
+  drag.x = event.clientX;
+  drag.y = event.clientY;
+  if (!drag.ghost) {
+    selectStrip(drag.source.dataset.id);
+    drag.ghost = document.createElement('div');
+    drag.ghost.className = 'drag-ghost';
+    drag.ghost.textContent = activeFlight(drag.source.dataset.id).callsign;
+    document.body.append(drag.ghost);
+    document.body.classList.add('dragging');
+    drag.source.classList.add('drag-source');
+    dragFrame();
+  }
+});
+$('board').addEventListener('pointerup',event => endDrag(event));
+$('board').addEventListener('pointercancel',event => endDrag(event,true));
+$('board').addEventListener('lostpointercapture',event => endDrag(event,true));
+window.addEventListener('blur',() => endDrag(null,true));
+document.addEventListener('keydown',event => { if (event.key === 'Escape' && drag) endDrag(null,true); });
+// Boîtes de dialogue et outils de session.
+function showDialog(title,content) {
+  closePopover();
+  $('dialog-title').textContent = title;
+  $('dialog-body').innerHTML = content;
+  if (!$('dialog').open) $('dialog').showModal();
+  $('dialog').scrollTop = 0;
+  return $('dialog-body');
+}
+function closeDialog() { $('dialog').close(); }
+function dialogActions(label = 'ENREGISTRER',danger = false) {
+  return '<div class="error" role="alert"></div><div class="dialog-actions"><button class="btn" type="button" data-close>ANNULER</button>' +
+    '<button class="btn ' + (danger ? 'danger' : 'primary') + '">' + esc(label) + '</button></div>';
+}
+function onForm(body,submit) {
+  body.querySelector('form').onsubmit = event => {
+    event.preventDefault();
+    try { submit(event.currentTarget,new FormData(event.currentTarget)); }
+    catch (error) { body.querySelector('.error').textContent = error.message; }
+  };
+}
+function confirmDialog(title,message,action) {
+  const body = showDialog(title,'<form><p>' + esc(message) + '</p>' + dialogActions('CONFIRMER',true) + '</form>');
+  body.querySelector('[data-close]').focus();
+  onForm(body,() => { action(); closeDialog(); });
+}
+function flightDialog(f,prefill) {
+  const defaults = {origin:state.settings.airport,rules:'IFR',flow:'DEP',estimate:utcMinute(10),status:'filed',wake:'M'};
+  const initial = f ?? prefill ?? defaults;
+  const keys = ['callsign','aircraft','wake','origin','destination','flow','rules','runway','squawk','estimate','status',
+    'colorCategory','current','assigned','speed','heading','frequency','route','remarks'];
+  const body = showDialog(f ? 'VOL / ' + f.callsign : prefill ? 'DUPLIQUER LA FICHE DE VOL' : 'NOUVEAU VOL',
+    '<form' + (f?.ivao ? ' data-altitude-flight="' + f.id + '"' : '') + '><div class="form-grid">' +
+    keys.map(key => '<label class="field' + (key === 'remarks' ? ' wide' : '') + '">' +
+      esc(key === 'current' && f?.ivao ? 'Altitude actuelle · IVAO' : FIELDS[key]) + fieldControl(key,initial) + '</label>').join('') +
+    '</div><p class="help">Saisis le niveau en FL ou l’altitude en pieds (FT). La fiche rejoint la baie de son nouveau statut si elle existe.</p>' +
+    (f?.ivao ? '<p class="help">Suivi IVAO · ' + (f.ivao.phase ? esc(NETWORK_PHASES[f.ivao.phase]) + ' · ' : '') +
+      (f.ivao.gs == null ? '' : 'Vitesse sol ' + f.ivao.gs + ' kt · ') + 'Dernier signal ' + shortUtc(f.ivao.seen) +
+      (f.ivao.absent ? ' · Signal perdu' : '') + '. Les valeurs modifiées manuellement sont conservées.</p>' : '') +
+    dialogActions(f ? 'ENREGISTRER' : 'CRÉER LE VOL') + '</form>');
+  const elements = body.querySelector('form').elements;
+  function refreshStatuses() {
+    const values = validStates(elements.flow.value,elements.rules.value);
+    const previous = elements.status.value;
+    elements.status.innerHTML = statusOptions(values,values.includes(previous) ? previous : values[0]);
+  }
+  elements.flow.onchange = () => {
+    const local = state.settings.airport;
+    if (elements.flow.value === 'ARR' && elements.origin.value === local && elements.destination.value !== local) {
+      elements.origin.value = elements.destination.value;
+      elements.destination.value = local;
+    } else if (elements.flow.value === 'DEP' && elements.destination.value === local && elements.origin.value !== local) {
+      elements.destination.value = elements.origin.value;
+      elements.origin.value = local;
+    }
+    refreshStatuses();
+  };
+  elements.rules.onchange = refreshStatuses;
+  elements.aircraft.oninput = () => {
+    const wake = TYPES[upper(elements.aircraft.value)];
+    if (wake) elements.wake.value = wake;
+  };
+  elements.callsign.focus();
+  onForm(body,(_form,values) => {
+    const input = Object.fromEntries(values);
+    if (f) {
+      updateFlight(activeFlight(f.id),input,true);
+    } else {
+      const bay = prefill && prefill.status === input.status ? prefill.bay : bayForStatus(input.status);
+      const added = addFlight({...input,bay},prefill ? 'Duplication' : 'Création');
+      selectedId = added.id;
+      commit();
+    }
+    closeDialog();
+  });
+}
+function moveDialog(f) {
+  const choices = state.settings.order.map(b => {
+    const bay = state.settings.bays[b];
+    return option(b,bay.code + ' · ' + bay.name + (bay.hidden ? ' (masquée)' : ''),f.bay);
+  }).join('');
+  const body = showDialog('DÉPLACER / ' + f.callsign,
+    '<form><div class="settings-grid"><label class="field">Baie<select name="bay">' + choices +
+    '</select></label><label class="field">Position<select name="position"></select></label></div>' +
+    '<p class="help">Le statut opérationnel reste inchangé.</p>' + dialogActions('DÉPLACER') + '</form>');
+  const fields = body.querySelector('form').elements;
+  function positions() {
+    const stack = state.flights.filter(item => item.bay === fields.bay.value && isActiveFlight(item));
+    const next = fields.bay.value === f.bay ? stack[stack.indexOf(f) + 1]?.id ?? '' : '';
+    fields.position.innerHTML = stack.filter(item => item.id !== f.id).map(item =>
+      option(item.id,'Avant ' + item.callsign,next)).join('') + option('','Fin de baie',next);
+  }
+  fields.bay.onchange = positions;
+  positions();
+  onForm(body,(_form,values) => {
+    moveFlight(activeFlight(f.id),values.get('bay'),values.get('position'),false);
+    closeDialog();
+  });
+}
+function moveToArchive(f,at) {
+  const index = state.flights.filter(item => item.bay === f.bay).indexOf(f);
+  const archived = {...f,archivedAt:at,index};
+  if (f.ivao) archived.ivao = {...f.ivao,autoArchived:false};
+  state.archive.push(archived);
+  state.flights = state.flights.filter(item => item.id !== f.id);
+  log(f.callsign,'Archivage',bayCode(f.bay),'Archives',at);
+}
+function archiveFlight(f) {
+  moveToArchive(f,now());
+  commit();
+  toast(f.callsign + ' archivé.');
+}
+function restoreFlight(archived) {
+  uniqueCallsign(archived.callsign);
+  const {archivedAt,index,...flight} = archived;
+  if (flight.ivao) {
+    validate(!state.flights.some(f => f.ivao?.key === flight.ivao.key),'Cette connexion IVAO est déjà suivie.');
+    flight.ivao = {...flight.ivao,autoArchived:false,absent:null,seen:Date.now()};
+  }
+  const stack = state.flights.filter(item => item.bay === flight.bay);
+  const next = stack[index];
+  state.flights.splice(next ? state.flights.indexOf(next) : state.flights.length,0,flight);
+  state.archive = state.archive.filter(item => item.id !== flight.id);
+  selectedId = flight.id;
+  log(flight.callsign,'Restauration','Archives',bayCode(flight.bay) + ' #' + (Math.min(index,stack.length) + 1));
+  commit();
+}
+function table(head,rows,empty) {
+  if (!rows.length) return '<p class="help">' + esc(empty) + '</p>';
+  return '<div class="table-wrap"><table><thead><tr>' + head.map(item => '<th scope="col">' + esc(item) + '</th>').join('') +
+    '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+}
+function tr(values,tail = '') {
+  return '<tr>' + values.map(item => '<td>' + esc(item) + '</td>').join('') + tail + '</tr>';
+}
+function timeLabel(at) { return at.slice(0,10) + ' ' + at.slice(11,19) + 'Z'; }
+function historyDialog() {
+  const body = showDialog('JOURNAL D’ACTIVITÉ',
+    '<label class="field">Filtrer le journal<input type="search" placeholder="Indicatif, action, valeur…" autocomplete="off"></label><div data-log></div>');
+  const query = body.querySelector('input');
+  function list() {
+    const search = upper(query.value);
+    const rows = [...state.log].reverse().filter(item => Object.values(item).some(value => upper(value).includes(search)))
+      .map(item => tr([timeLabel(item.at),item.callsign,item.field,item.before,item.after]));
+    body.querySelector('[data-log]').innerHTML = table(['Horodatage UTC','Indicatif','Champ / action','Ancienne valeur','Nouvelle valeur'],rows,'Aucune entrée.');
+  }
+  query.oninput = list;
+  list();
+}
+function archiveDialog() {
+  const rows = [...state.archive].sort((a,b) => b.archivedAt.localeCompare(a.archivedAt)).map(f =>
+    tr([timeLabel(f.archivedAt),f.callsign,f.aircraft,f.origin + ' › ' + f.destination,bayCode(f.bay),STATUS[f.status][1]],
+      '<td><button class="btn" data-restore="' + f.id + '">RESTAURER</button></td>'));
+  const body = showDialog('VOLS ARCHIVÉS',table(['Archivé UTC','Indicatif','Type','Trajet','Baie','Dernier état','Action'],rows,'Aucun vol archivé.') +
+    '<div class="error" role="alert"></div>');
+  body.querySelectorAll('[data-restore]').forEach(button => button.onclick = () => {
+    try {
+      restoreFlight(state.archive.find(f => f.id === button.dataset.restore));
+      archiveDialog();
+    } catch (error) { body.querySelector('.error').textContent = error.message; }
+  });
+}
+function runwayDialog(focusRunway) {
+  const warnings = new Set(conflicts().map(group => runwayKey(group[0].runway)));
+  const list = configuredRunways();
+  const active = activeRunways();
+  const declared = state.service && !state.settings.runways.length ? activeAtis() : null;
+  const activeFlights = state.flights.filter(isActiveFlight);
+  const rows = [...state.movements].reverse().map(item => tr([timeLabel(item.at),item.runway,item.callsign,MOVEMENTS[item.status]]));
+  const cards = list.map(runway => {
+    const items = activeFlights.filter(f => f.runway === runway);
+    const atHold = items.filter(f => f.status === 'holding');
+    const occupied = items.filter(f => RWY_OCCUPIED.includes(f.status));
+    const cleared = items.filter(f => RWY_CLEARANCE.includes(f.status));
+    const landed = items.filter(f => ['landed','vacated','groundTaxi','groundHold','onStand'].includes(f.status));
+    const airborne = items.filter(f => ['airborne','climbing','transfer','transferred'].includes(f.status));
+    const assigned = items.filter(f => !atHold.includes(f) && !occupied.includes(f) && !cleared.includes(f) && !landed.includes(f) && !airborne.includes(f));
+    const line = (label,flights,withStatus = false) => '<p><span class="muted">' + label + '</span><br>' +
+      (flights.map(f => f.callsign + (withStatus ? ' (' + STATUS[f.status][2] + ')' : '')).join(' · ') || '—') + '</p>';
+    const inUse = active.includes(runway);
+    const published = serviceRunways().includes(runway);
+    const end = state.service?.ends.find(item => item.id === runway);
+    const use = declared ? [declared.arrivals.includes(runway) ? 'ARR' : '',declared.departures.includes(runway) ? 'DEP' : ''].filter(Boolean).join(' / ') : '';
+    return '<section class="runway-card' + (warnings.has(runwayKey(runway)) ? ' warn' : '') +
+      '" data-detail="' + runway + '"><h3>PISTE ' + runway + '</h3><p class="muted">' + (inUse ? 'EN SERVICE' + (use ? ' · ' + use : '') : published ? 'RÉPERTORIÉE' : 'HORS CONFIGURATION') + '</p>' +
+      (end ? '<p class="muted">' + (end.length ? end.length + ' m' : '—') + (end.heading == null ? '' : ' · ' + Math.round(end.heading) + '°T') +
+        (end.surface ? ' · ' + esc(end.surface) : '') + '</p>' : '') +
+      line('Point d’attente',atHold) + line('Sur piste (statut saisi)',occupied,true) + line('Clairance piste',cleared,true) +
+      line('Atterris',landed) + line('Décollés',airborne) + line('Autres assignations',assigned) + '</section>';
+  }).join('');
+  const unassigned = activeFlights.filter(f => !f.runway);
+  const choices = option('','Sélectionner un vol','') + activeFlights.map(f => option(f.id,f.callsign + ' · ' + (f.runway || 'Sans piste'))).join('');
+  const body = showDialog('GESTION DES PISTES',
+    '<div class="inline"><button class="btn" id="runway-settings">CONFIGURER LES PISTES</button></div>' +
+    '<p class="help">Vigilance simulée si plusieurs vols ont une clairance d’atterrissage, d’alignement ou de décollage, ou occupent la même piste, y compris en sens réciproque. L’alerte repose sur les fiches de vol du tableau.</p>' +
+    '<div class="runway-grid">' + cards + '</div>' + (unassigned.length ? '<p class="help">Sans piste : ' +
+      unassigned.map(f => f.callsign).join(' · ') + '</p>' : '') +
+    '<div class="subsection"><h3>ASSIGNER UNE PISTE</h3><form><div class="settings-grid"><label class="field">Vol<select name="flight" required>' +
+    choices + '</select></label><label class="field">Piste assignée' + fieldControl('runway',{}) + '</label></div>' +
+    '<div class="error" role="alert"></div><div class="dialog-actions"><button class="btn primary"' + (activeFlights.length ? '' : ' disabled') +
+    '>ASSIGNER</button></div></form></div>' +
+    '<div class="subsection"><h3>CHRONOLOGIE DES MOUVEMENTS</h3>' +
+    table(['Horodatage UTC','Piste','Indicatif','Mouvement / clairance'],rows,'Aucun mouvement enregistré.') + '</div>');
+  $('runway-settings').onclick = () => settingsDialog(true);
+  const fields = body.querySelector('form').elements;
+  fields.flight.onchange = () => fields.runway.value = activeFlight(fields.flight.value)?.runway ?? '';
+  onForm(body,(_form,values) => {
+    updateFlight(activeFlight(values.get('flight')),{runway:values.get('runway')});
+    runwayDialog(upper(values.get('runway')));
+  });
+  if (focusRunway) {
+    const card = body.querySelector('[data-detail="' + focusRunway + '"]');
+    if (card) {
+      card.tabIndex = -1;
+      card.focus();
+    }
+  }
+}
+function splitRunways(value) { return upper(value).split(/[\s,;/]+/).filter(Boolean); }
+function bayVisibilityDialog() {
+  const layout = sharedBayLayout;
+  const choices = layout.order.map(id => {
+    const {code,name,hidden} = layout.bays[id];
+    return '<label class="bay-visibility-option"><input type="checkbox" name="visibleBay" value="' + id + '"' +
+      (hidden ? '' : ' checked') + '><span class="bay-code">' + code + '</span><span>' + esc(name) + '</span></label>';
+  }).join('');
+  const body = showDialog('AFFICHAGE DES BAIES',
+    '<form><p class="help">Coche les baies à afficher. Les fiches et le suivi IVAO continuent dans les baies masquées.</p>' +
+    '<div class="bay-visibility-grid">' + choices + '</div>' + dialogActions() + '</form>');
+  body.querySelector('input').focus();
+  onForm(body,(_form,values) => {
+    validate(sharedBayLayout === layout,'Les réglages communs ont changé dans un autre onglet. Rouvre l’affichage des baies.');
+    const visible = new Set(values.getAll('visibleBay'));
+    const bays = Object.fromEntries(Object.entries(layout.bays).map(([id,bay]) => [id,{...bay,hidden:!visible.has(id)}]));
+    if (layout.order.some(id => bays[id].hidden !== Boolean(layout.bays[id].hidden))) {
+      saveBayLayout({...state.settings,bays,order:layout.order});
+      state.settings = {...state.settings,bays:copy(sharedBayLayout.bays),order:[...sharedBayLayout.order]};
+      commit();
+    }
+    closeDialog();
+  });
+}
+function settingsDialog(fromRunways = false) {
+  const s = state.settings;
+  const layoutAtOpen = sharedBayLayout;
+  const order = [...s.order];
+  const bays = copy(s.bays);
+  const transfers = new Map();
+  const trafficBays = {...layoutAtOpen.trafficBays};
+  const body = showDialog('PARAMÈTRES DE SESSION',
+    '<h3 class="eyebrow">PROFIL DE CONFIGURATION</h3>' +
+    '<p class="help">Transfère tes baies, tes couleurs et tes réglages IVAO. L’aéroport et les fiches restent dans ta session.</p>' +
+    '<div class="inline"><button class="btn" id="export-profile" type="button">EXPORTER LE PROFIL</button>' +
+    '<button class="btn" id="import-profile" type="button">IMPORTER UN PROFIL</button></div>' +
+    '<form class="subsection"><div class="settings-grid">' +
+    '<label class="field">Code OACI<input name="airport" maxlength="4" required value="' + s.airport + '"' + (state.service ? ' readonly' : '') + '></label>' +
+    '<label class="field">Nom de l’aérodrome<input name="airportName" maxlength="120" required value="' + esc(s.airportName) + '"' + (state.service ? ' readonly' : '') + '></label>' +
+    (state.service ? '' : '<label class="field">QNH simulé · hPa<input name="qnh" type="number" min="850" max="1100" required value="' + s.qnh + '"></label>') +
+    '<label class="field">' + (state.service ? 'Pistes actives · forçage manuel' : 'Pistes en service') + '<input name="runways" value="' + s.runways.join(', ') + '" placeholder="26L, 26R, 27L, 27R"></label></div>' +
+    (state.service ? '<p class="help">Tu peux définir un lien MANEX pour ' + s.airport + '.</p>' +
+      '<label class="field">Lien MANEX personnalisé<input type="url" name="manexUrl" maxlength="2048" placeholder="https://…" value="' +
+      esc(s.manexUrl ?? '') + '"></label>' : '') +
+    '<p class="help">' + (state.service ? 'Laisser vide pour suivre l’ATIS IVAO. ' : '') +
+    'Sépare les pistes par des virgules. Ces paramètres sont conservés pour les prochaines sessions.</p>' +
+    '<div class="subsection"><h3>ZONE D’APPROCHE IVAO</h3><div class="settings-grid">' +
+    '<label class="field">Rayon d’approche · NM<input name="approachRadius" type="number" min="5" max="150" required value="' + s.approach.radiusNm + '"></label>' +
+    '<label class="field">Altitude IVAO maximale · ft<input name="approachCeiling" type="number" min="1000" max="35000" required value="' + s.approach.ceilingFt + '"></label>' +
+    '</div><p class="help">Ce filtre de simulation place en baie Approche les arrivées et les départs en vol de cet aérodrome qui sont dans la zone. Les fiches IVAO automatiques hors zone sont retirées. Les départs encore au sol sur le terrain restent visibles.</p></div>' +
+    '<div class="subsection"><h3>BAIES COMMUNES À TOUS LES AÉROPORTS</h3><div id="bay-order"></div><div id="bay-removal" hidden></div>' +
+    '<p class="help">Les modifications sont enregistrées dans ce navigateur pour tous les aérodromes et les prochaines sessions.</p>' +
+    '<p class="help">Les nouvelles fiches sans baie dédiée vont dans la première baie. Garde au moins une baie.</p>' +
+    '<button class="btn" id="add-bay" type="button">AJOUTER UNE BAIE</button></div>' +
+    '<div class="subsection"><h3>RÉPARTITION AUTOMATIQUE IVAO</h3><div class="settings-grid">' +
+    Object.entries(FLOW_LABELS).map(([flow,label]) => '<label class="field">Baie automatique · ' + label +
+      '<select id="traffic-bay-' + flow + '"></select></label>').join('') +
+    '</div><p class="help">Choisis où placer les arrivées et les départs IVAO. Si tu choisis Clairances pour les départs, ceux qui sont déjà en vol rejoignent la baie Départs ou une autre baie disponible. Le réglage est commun à tous les aérodromes.</p></div>' +
+    '<div class="subsection"><h3>COULEURS DES FICHES</h3><div class="color-grid">' +
+    Object.entries(COLOR_LABELS).map(([key,label]) => '<label class="field">' + label +
+      '<input type="color" name="color-' + key + '" value="' + s.colors[key] + '"></label>').join('') +
+    '</div><p class="help">Ces couleurs sont communes à tous les aérodromes.</p></div>' +
+    dialogActions() + '</form><div class="subsection"><h3>SAUVEGARDE DE SESSION</h3><div class="inline">' +
+    '<button class="btn" id="export">EXPORTER LA SESSION</button><button class="btn" id="import">IMPORTER UNE SESSION</button>' +
+    '<button class="btn danger" id="reset">VIDER LE TABLEAU…</button></div></div>');
+  const list = $('bay-order');
+  const removal = $('bay-removal');
+  function renderTrafficBays() {
+    for (const flow of Object.keys(FLOW_LABELS)) {
+      const select = $('traffic-bay-' + flow);
+      const selected = trafficBays[flow];
+      select.innerHTML = option('','Selon l’état du vol',selected) +
+        order.map(id => option(id,bays[id].code + ' · ' + bays[id].name,selected)).join('');
+    }
+  }
+  for (const flow of Object.keys(FLOW_LABELS)) {
+    const select = $('traffic-bay-' + flow);
+    select.onchange = () => { trafficBays[flow] = select.value; };
+  }
+  function renderOrder(focusKey,direction) {
+    list.innerHTML = order.map((bay,i) => '<div class="order-row"><span>' + (i + 1) + '</span>' +
+      '<input class="bay-code-input" data-bay-code="' + bay + '" aria-label="Code de la baie ' + (i + 1) + '" maxlength="8" required value="' + esc(bays[bay].code) + '"' +
+      (Object.hasOwn(BAYS,bay) ? ' readonly' : '') + '>' +
+      '<input class="bay-name-input" data-bay-name="' + bay + '" aria-label="Nom de la baie ' + (i + 1) + '" maxlength="36" required value="' + esc(bays[bay].name) + '">' +
+      '<span class="inline"><button class="btn square" data-order="' + bay + '" data-dir="-1" type="button" aria-label="Monter la baie ' + (i + 1) +
+      '"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="btn square" data-order="' + bay +
+      '" data-dir="1" type="button" aria-label="Descendre la baie ' + (i + 1) + '"' + (i === order.length - 1 ? ' disabled' : '') + '>↓</button>' +
+      '<button class="btn square danger" data-remove-bay="' + bay + '" type="button" aria-label="Supprimer la baie ' + esc(bays[bay].code) + '"' +
+      (order.length === 1 ? ' disabled' : '') + '>×</button></span></div>').join('');
+    $('add-bay').disabled = order.length >= 30;
+    renderTrafficBays();
+    if (focusKey) {
+      const buttons = [...list.querySelectorAll('[data-order="' + focusKey + '"]')];
+      (buttons.find(button => !button.disabled && Number(button.dataset.dir) === direction) ??
+        buttons.find(button => !button.disabled))?.focus();
+    }
+  }
+  list.onclick = event => {
+    const remove = event.target.closest('[data-remove-bay]');
+    if (remove) {
+      chooseBayRemoval(remove.dataset.removeBay);
+      return;
+    }
+    const button = event.target.closest('[data-order]');
+    if (!button) return;
+    const i = order.indexOf(button.dataset.order);
+    const direction = Number(button.dataset.dir);
+    const j = i + direction;
+    [order[i],order[j]] = [order[j],order[i]];
+    renderOrder(button.dataset.order,direction);
+  };
+  function removeBay(id,destination) {
+    for (const [source,target] of transfers) {
+      if (target === id) transfers.set(source,destination);
+    }
+    transfers.set(id,destination);
+    for (const flow of Object.keys(FLOW_LABELS)) {
+      if (trafficBays[flow] === id) trafficBays[flow] = destination;
+    }
+    order.splice(order.indexOf(id),1);
+    delete bays[id];
+    removal.hidden = true;
+    removal.replaceChildren();
+    renderOrder();
+    $('add-bay').focus();
+  }
+  function chooseBayRemoval(id) {
+    const remaining = order.filter(bay => bay !== id);
+    if (!remaining.length) return;
+    removal.innerHTML = '<p class="help">Choisis la baie où déplacer les fiches actives ou archivées qui utilisent la baie ' +
+      esc(bays[id].code) + ', quel que soit l’aérodrome.</p>' +
+      '<div class="inline"><select aria-label="Baie de destination">' +
+      remaining.map(key => option(key,bays[key].code + ' · ' + bays[key].name)).join('') +
+      '</select><button class="btn danger" type="button" data-confirm-bay>RETIRER LA BAIE</button>' +
+      '<button class="btn" type="button" data-cancel-bay>ANNULER LE RETRAIT</button></div>';
+    removal.hidden = false;
+    const destination = removal.querySelector('select');
+    destination.focus();
+    removal.querySelector('[data-confirm-bay]').onclick = () => removeBay(id,destination.value);
+    removal.querySelector('[data-cancel-bay]').onclick = () => {
+      removal.hidden = true;
+      removal.replaceChildren();
+      list.querySelector('[data-remove-bay="' + id + '"]').focus();
+    };
+  }
+  list.oninput = event => {
+    const {bayCode,bayName} = event.target.dataset;
+    if (bayCode) bays[bayCode].code = event.target.value;
+    if (bayName) bays[bayName].name = event.target.value;
+    if (bayCode || bayName) renderTrafficBays();
+  };
+  $('add-bay').onclick = () => {
+    const codes = new Set(Object.values(bays).map(bay => upper(bay.code)));
+    let number = 1;
+    while (codes.has('B' + number)) number++;
+    let id;
+    do { id = 'B' + upper(uid().replace(/-/g,'').slice(-11)); }
+    while (Object.hasOwn(bays,id) || transfers.has(id) || Object.hasOwn(sharedBayLayout.redirects,id));
+    bays[id] = {code:'B' + number,name:'Nouvelle baie'};
+    order.push(id);
+    renderOrder();
+    const name = list.querySelector('[data-bay-name="' + id + '"]');
+    name.focus();
+    name.select();
+  };
+  renderOrder();
+  if (fromRunways) body.querySelector('[name="runways"]').focus();
+  onForm(body,(_form,values) => {
+    validate(sharedBayLayout === layoutAtOpen,'Les réglages communs ont changé dans un autre onglet. Rouvre les paramètres.');
+    const changed = normalizeSettings({
+      airport:values.get('airport'),airportName:values.get('airportName'),qnh:values.get('qnh') ?? s.qnh,
+      runways:splitRunways(values.get('runways')),order,bays,manexUrl:values.get('manexUrl') ?? s.manexUrl,
+      approach:{radiusNm:values.get('approachRadius'),ceilingFt:values.get('approachCeiling')},
+      colors:Object.fromEntries(Object.keys(COLOR_LABELS).map(key => [key,values.get('color-' + key)]))
+    });
+    const orderChanged = String(s.order) !== String(changed.order);
+    const namesOrCodesChanged = changed.order.some(id =>
+      s.bays[id]?.code !== changed.bays[id].code || s.bays[id]?.name !== changed.bays[id].name);
+    const trafficChanged = Object.keys(FLOW_LABELS).some(flow => trafficBays[flow] !== layoutAtOpen.trafficBays[flow]);
+    const paletteChanged = Object.keys(COLOR_LABELS).some(key => changed.colors[key] !== s.colors[key]);
+    const layoutChanged = orderChanged || namesOrCodesChanged || trafficChanged || paletteChanged;
+    if (layoutChanged) saveBayLayout(changed,transfers,trafficBays);
+    const settingsLabels = {airport:'Aérodrome OACI',airportName:'Nom de l’aérodrome',qnh:'QNH simulé',runways:'Pistes en service'};
+    for (const [key,label] of Object.entries(settingsLabels)) {
+      if (String(s[key]) !== String(changed[key])) log('SYSTÈME',label,String(s[key]) || '—',String(changed[key]) || '—');
+    }
+    if (orderChanged) {
+      log('SYSTÈME','Ordre des baies',s.order.map(id => s.bays[id].code).join(', '),changed.order.map(id => changed.bays[id].code).join(', '));
+    }
+    for (const [key,label] of Object.entries(COLOR_LABELS)) {
+      if (s.colors[key] !== changed.colors[key]) log('SYSTÈME','Couleur / ' + label,s.colors[key],changed.colors[key]);
+    }
+    for (const [flow,label] of Object.entries(FLOW_LABELS)) {
+      const previous = layoutAtOpen.trafficBays[flow];
+      if (previous !== trafficBays[flow]) log('SYSTÈME','Baie automatique / ' + label,
+        s.bays[previous]?.code ?? 'Selon l’état du vol',changed.bays[trafficBays[flow]]?.code ?? 'Selon l’état du vol');
+    }
+    for (const [id,bay] of Object.entries(changed.bays)) {
+      const previous = s.bays[id];
+      if (!previous || previous.code !== bay.code || previous.name !== bay.name) {
+        log('SYSTÈME','Baie',previous ? previous.code + ' · ' + previous.name : '—',bay.code + ' · ' + bay.name);
+      }
+    }
+    for (const f of state.flights) {
+      if (!transfers.has(f.bay)) continue;
+      const destination = transfers.get(f.bay);
+      log(f.callsign,'Baie',s.bays[f.bay].code,changed.bays[destination].code);
+    }
+    for (const [id,destination] of transfers) {
+      if (s.bays[id]) log('SYSTÈME','Suppression de baie',s.bays[id].code,changed.bays[destination].code);
+    }
+    if (layoutChanged) applyBayLayout(state,sharedBayLayout);
+    state.settings = changed;
+    if (s.approach.radiusNm !== changed.approach.radiusNm || s.approach.ceilingFt !== changed.approach.ceilingFt) {
+      delete feeds.tracker.syncedAt;
+      log('SYSTÈME','Zone d’approche',s.approach.radiusNm + ' NM / ' + s.approach.ceilingFt + ' ft',
+        changed.approach.radiusNm + ' NM / ' + changed.approach.ceilingFt + ' ft');
+    }
+    commit(true);
+    if (changed.airport !== s.airport) ensureAirportReference();
+    if (fromRunways) runwayDialog();
+    else closeDialog();
+  });
+  $('export-profile').onclick = exportProfile;
+  $('import-profile').onclick = () => $('profile-file').click();
+  $('export').onclick = exportState;
+  $('import').onclick = () => $('import-file').click();
+  $('reset').onclick = () => confirmDialog('VIDER LE TABLEAU',
+    'Retirer tous les vols actifs ? Le bouton Actualiser IVAO recharge les vols en ligne de l’aéroport.',() => {
+      const count = state.flights.filter(isActiveFlight).length;
+      for (const f of state.flights) if (f.ivao) dismissIvao(f.ivao.key,'reset');
+      state.flights = [];
+      selectedId = null;
+      clearFilters();
+      log('SYSTÈME','Remise à zéro',count + ' vol(s) actif(s)','0 vol actif');
+      commit();
+    });
+}
+function downloadJson(data,filename) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url),30000);
+}
+function exportState() {
+  const backup = {...state,trafficBays:sharedBayLayout.trafficBays};
+  downloadJson(backup,'efs-' + state.settings.airport + '-' + now().slice(0,10) + '.json');
+}
+function exportProfile() {
+  const profile = {format:PROFILE_FORMAT,version:1,layout:decodeBayLayout(sharedBayLayout),
+    approach:normalizeApproach(state.settings.approach)};
+  downloadJson(profile,'efs-profil-' + now().slice(0,10) + '.json');
+}
+function decodeProfile(raw) {
+  validate(raw?.format === PROFILE_FORMAT && raw.version === 1,'Fichier non reconnu. Sélectionne un export de profil E-Strips version 1.');
+  const layout = decodeBayLayout(raw.layout);
+  validate(Object.keys(COLOR_LABELS).every(key => raw.layout.colors?.[key] === layout.colors[key]),'Couleurs du profil invalides.');
+  validate(Object.keys(FLOW_LABELS).every(flow => raw.layout.trafficBays?.[flow] === layout.trafficBays[flow]),'Répartition IVAO du profil invalide.');
+  validate(Object.keys(raw.layout.redirects ?? {}).length === Object.keys(layout.redirects).length,'Redirections de baies du profil invalides.');
+  validate(Number.isInteger(raw.approach?.radiusNm) && Number.isInteger(raw.approach?.ceilingFt),'Seuils d’approche du profil manquants ou invalides.');
+  const approach = normalizeApproach(raw.approach);
+  addDefaultBays(layout);
+  return {layout,approach};
+}
+function applyProfile({layout,approach}) {
+  const next = {...state,settings:{...state.settings,approach}};
+  applyBayLayout(next,layout);
+  const key = sessionParametersKey(state);
+  const previous = localStorage.getItem(key);
+  localStorage.setItem(key,JSON.stringify(sessionParameters(next.settings)));
+  try { persistBayLayout(layout); }
+  catch (error) {
+    if (previous === null) localStorage.removeItem(key);
+    else localStorage.setItem(key,previous);
+    throw error;
+  }
+  Object.assign(state,next);
+  log('SYSTÈME','Import du profil','Profil précédent','Profil appliqué');
+  commit();
+}
+async function readJson(file) {
+  const contents = await file.text();
+  try { return JSON.parse(contents); }
+  catch { throw new Error('Le fichier sélectionné ne contient pas de JSON valide.'); }
+}
+$('profile-file').addEventListener('change',async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  try {
+    const profile = decodeProfile(await readJson(file));
+    confirmDialog('IMPORTER LE PROFIL',
+      'Appliquer les baies et les couleurs du fichier ' + file.name + ' à tous les aéroports ? Les seuils d’approche s’appliqueront à ' +
+      state.settings.airport + '. Les fiches existantes seront conservées et réparties dans les baies du profil.',() => {
+        applyProfile(profile);
+        toast('Profil importé.');
+      });
+  } catch (error) {
+    showDialog('IMPORT DE PROFIL REFUSÉ','<p class="error" role="alert">' + esc(error.message) + '</p>');
+  }
+});
+$('import-file').addEventListener('change',async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  try {
+    const data = await readJson(file);
+    const imported = decodeState(data);
+    confirmDialog('IMPORTER LA SESSION',
+      'Importer les vols et la configuration du fichier ' + file.name + ' ? Les réglages communs importés seront utilisés dans tous les aérodromes.',() => {
+        saveBayLayout(imported.settings,new Map(),data.trafficBays ?? sharedBayLayout.trafficBays);
+        applyBayLayout(imported,sharedBayLayout);
+        state = imported;
+        selectedId = null;
+        clearFilters();
+        log('SYSTÈME','Import JSON','Session précédente','Session importée');
+        resetFeeds();
+        commit(true);
+        ensureAirportReference();
+        refreshService();
+      });
+  } catch (error) {
+    showDialog('IMPORT REFUSÉ','<p class="error" role="alert">' + esc(error.message) + '</p>');
+  }
+});
+
+// Catalogue mondial et flux publics de simulation IVAO.
+const IVAO_API = 'https://api.ivao.aero/v2/';
+const IVAO_TRACKER = IVAO_API + 'tracker/whazzup';
+const CATALOGUE_BASE = 'https://davidmegginson.github.io/ourairports-data/';
+const MINUTE = 60000;
+const MAX_METAR_AGE = 120 * MINUTE;
+const MAX_ATIS_AGE = 120 * MINUTE;
+const networkCache = new Map();
+const profiles = new Map();
+const airportClocks = new Map();
+let feeds = {weather:{},tracker:{}};
+
+function request(url,type,ttl,force = false) {
+  const cached = networkCache.get(url);
+  if (cached && (cached.pending || (!force && cached.until > Date.now()))) return cached.promise;
+  const entry = {pending:true,until:0};
+  entry.promise = fetch(url,{signal:AbortSignal.timeout(20000),credentials:'omit',cache:'no-cache'})
+    .then(response => {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return type === 'csv' ? response.text() : response.json();
+    }).then(data => {
+      entry.until = Date.now() + ttl;
+      return data;
+    }).catch(error => {
+      networkCache.delete(url);
+      throw error;
+    }).finally(() => entry.pending = false);
+  networkCache.set(url,entry);
+  return entry.promise;
+}
+function parseCsv(text,onRow) {
+  let cells = [];
+  let value = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (quoted && text[i + 1] === '"') { value += '"'; i++; }
+      else quoted = !quoted;
+    } else if (!quoted && (c === ',' || c === '\n' || c === '\r')) {
+      cells.push(value);
+      value = '';
+      if (c !== ',') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        if (onRow(cells) === false) return;
+        cells = [];
+      }
+    } else value += c;
+  }
+  if (cells.length || value) onRow([...cells,value]);
+}
+function findAirport(text,code) {
+  let header;
+  let exact;
+  let fallback;
+  parseCsv(text,cells => {
+    if (!header) {
+      header = cells;
+      return;
+    }
+    const get = key => cells[header.indexOf(key)];
+    if (get('type') === 'closed') return;
+    const official = get('icao_code');
+    const match = official === code;
+    if (!match && (official || (get('gps_code') !== code && get('ident') !== code))) return;
+    const point = [numeric(get('latitude_deg')),numeric(get('longitude_deg'))];
+    const airport = {id:get('id'),name:get('name'),reference:point.every(value => value != null) ? point : null};
+    if (match) { exact = airport; return false; }
+    fallback ??= airport;
+  });
+  return exact ?? fallback;
+}
+const numeric = value => value === '' || value == null || !Number.isFinite(Number(value)) ? null : Number(value);
+function trueBearing(lat1,lon1,lat2,lon2) {
+  if ([lat1,lon1,lat2,lon2].some(value => value == null) || (lat1 === lat2 && lon1 === lon2)) return null;
+  const rad = Math.PI / 180;
+  const delta = (lon2 - lon1) * rad;
+  const start = lat1 * rad;
+  const end = lat2 * rad;
+  const y = Math.sin(delta) * Math.cos(end);
+  const x = Math.cos(start) * Math.sin(end) - Math.sin(start) * Math.cos(end) * Math.cos(delta);
+  return (Math.atan2(y,x) / rad + 360) % 360;
+}
+function airportEnds(text,airportId) {
+  let header;
+  const ends = new Map();
+  parseCsv(text,cells => {
+    if (!header) { header = cells; return; }
+    const get = key => cells[header.indexOf(key)];
+    if (get('airport_ref') !== airportId || get('closed') === '1') return;
+    const coordinates = end => [numeric(get(end + '_latitude_deg')),numeric(get(end + '_longitude_deg'))];
+    const length = Math.min(20000,Math.max(0,Math.round((numeric(get('length_ft')) ?? 0) * .3048)));
+    const surface = (get('surface') ?? '').slice(0,80);
+    for (const [side,other] of [['le','he'],['he','le']]) {
+      const id = upper(get(side + '_ident')).replace(/^(\d)([LCR]?)$/,'0$1$2');
+      if (!RUNWAY.test(id) || ends.has(id)) continue;
+      const recorded = numeric(get(side + '_heading_degT'));
+      const heading = recorded != null && recorded >= 0 && recorded <= 360 ? recorded :
+        trueBearing(...coordinates(side),...coordinates(other));
+      ends.set(id,{id,heading,length,surface});
+    }
+  });
+  return [...ends.values()].sort((a,b) => a.id.localeCompare(b.id));
+}
+async function airportCatalogue(code) {
+  const airports = await request(CATALOGUE_BASE + 'airports.csv','csv',12 * 60 * MINUTE);
+  const airport = findAirport(airports,code);
+  validate(airport,'Aérodrome introuvable dans OurAirports : ' + code + '.');
+  const runways = await request(CATALOGUE_BASE + 'runways.csv','csv',12 * 60 * MINUTE);
+  return {name:airport.name,reference:airport.reference,ends:airportEnds(runways,airport.id)};
+}
+function parseMetar(row) {
+  const raw = upper(row?.metar);
+  const at = Date.parse(row?.updatedAt);
+  if (!raw || /\bNIL\b/.test(raw) || !Number.isFinite(at)) return null;
+  const body = raw.split(/\sRMK\s/)[0];
+  const qnh = /\bQ(\d{4})\b/.exec(body);
+  const altimeter = /\bA(\d{4})\b/.exec(body);
+  const pressure = qnh ? Number(qnh[1]) : altimeter ? Math.round(Number(altimeter[1]) * .338638866667) : null;
+  const wind = /\b(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?(KT|MPS|KMH)\b/.exec(body);
+  const factor = wind ? {KT:1,MPS:1.943844,KMH:1/1.852}[wind[4]] : 1;
+  const variable = /\b(\d{3})V(\d{3})\b/.exec(body);
+  const temperature = /\b(M?\d{2})\/(M?\d{2}|\/\/)\b/.exec(body);
+  const toC = value => value === '//' ? null : Number(value.replace('M','-'));
+  const visibility = /\bCAVOK\b/.test(body) ? 'CAVOK' :
+    body.match(/(?:^|\s)((?:\d+ )?[PM]?(?:\d+\/\d+|\d+)SM)(?=\s|$)/)?.[1] ??
+    body.match(/(?:^|\s)(\d{4})(?:NDV)?(?=\s|$)/)?.[1];
+  return {raw,at,pressure:pressure >= 850 && pressure <= 1100 ? pressure : null,converted:!qnh && Boolean(altimeter),
+    direction:wind && wind[1] !== 'VRB' ? Number(wind[1]) : null, wind:wind ? Math.round(Number(wind[2]) * factor) : null,
+    gust:wind?.[3] ? Math.round(Number(wind[3]) * factor) : null,variable:variable ? variable[1] + '–' + variable[2] + '°T' : '',
+    temp:temperature ? toC(temperature[1]) : null,dew:temperature ? toC(temperature[2]) : null,
+    visibility:visibility ? /^\d{4}$/.test(visibility) ? (visibility === '9999' ? '≥ 10 km' : Number(visibility) + ' m') : visibility : ''};
+}
+function weatherDisplay(weather) {
+  const pressure = weather.pressure == null ? '—' : (weather.converted ? '≈' : '') + weather.pressure + ' hPa';
+  const wind = weather.wind == null ? '—' : weather.wind === 0 ? 'Calme' :
+    (weather.direction == null ? 'VRB' : String(weather.direction).padStart(3,'0') + '°T') + ' ' + weather.wind +
+    (weather.gust == null ? '' : 'G' + weather.gust) + ' kt';
+  return pressure + ' / ' + wind;
+}
+function shortUtc(at,seconds = false) {
+  return new Date(at).toISOString().slice(11,seconds ? 19 : 16) + 'Z';
+}
+function isRecent(at,maxAge) {
+  const age = Date.now() - at;
+  return Number.isFinite(at) && age >= -5 * MINUTE && age <= maxAge;
+}
+function freshWeather() {
+  const report = feeds.weather.data;
+  return state.service && report && isRecent(report.at,MAX_METAR_AGE) ? report : null;
+}
+function serviceRunways() { return state.service?.ends.map(end => end.id) ?? []; }
+function runwaySuggestion(weather) {
+  if (!weather || weather.direction == null || weather.wind < 3 || weather.variable || !state.service) return null;
+  const ranked = state.service.ends.filter(end => end.heading != null).map(end => ({
+    ...end,headwind:weather.wind * Math.cos((weather.direction - end.heading) * Math.PI / 180)
+  })).filter(end => end.headwind > 0.5).sort((a,b) => b.headwind - a.headwind || b.length - a.length);
+  return ranked[0] ?? null;
+}
+function declaredRunways(lines,known) {
+  const text = upper(lines.join(' ')).replace(/\s+/g,' ');
+  const labels = /\b(?:(ARR(?:IVAL)?S?|LANDING|ATTERRISSAGES?)|(DEP(?:ARTURE)?S?|TAKE[ -]?OFF|D[ÉE]PARTS?))\s*(?:[:=]\s*)?(?:RWYS?|RUNWAYS?|PISTES?)\b(?:\s+(?:IN USE|EN SERVICE))?|\b(?:RWYS?|RUNWAYS?|PISTES?)\s+(?:IN USE|ACTIVE[S]?|EN SERVICE)\b/g;
+  const runways = new Set();
+  const arrivals = new Set();
+  const departures = new Set();
+  for (const marker of text.matchAll(labels)) {
+    const tail = text.slice(marker.index + marker[0].length).replace(/^[\s:=–-]+/,'');
+    const list = /^(\d{1,2}[LCR]?(?=\W|$)(?:(?:\s*(?:[/,&+]|\bAND\b|\bET\b)\s*|\s+)\d{1,2}[LCR]?(?=\W|$))*)/.exec(tail);
+    if (!list) continue;
+    for (const entry of list[1].matchAll(/\d{1,2}[LCR]?/g)) {
+      const id = entry[0].replace(/^(\d)([LCR]?)$/,'0$1$2');
+      if (!known.has(id)) continue;
+      runways.add(id);
+      if (marker[1]) arrivals.add(id);
+      if (marker[2]) departures.add(id);
+    }
+  }
+  for (const marker of text.matchAll(/\b(?:RWY|RUNWAY|PISTE)\s+(\d{1,2}[LCR]?)\s+(?:IN USE|ACTIVE|EN SERVICE)\b/g)) {
+    const id = marker[1].replace(/^(\d)([LCR]?)$/,'0$1$2');
+    if (known.has(id)) runways.add(id);
+  }
+  return {runways:[...runways],arrivals:[...arrivals],departures:[...departures]};
+}
+function parseTracker(payload,airport) {
+  validate(Array.isArray(payload?.clients?.atcs),'Réponse Whazzup invalide.');
+  return payload.clients.atcs.filter(controller => typeof controller.callsign === 'string' &&
+    IVAO_STATION.test(controller.callsign) && controller.callsign.startsWith(airport + '_')).map(controller => ({
+      callsign:controller.callsign,
+      frequency:typeof controller.atcSession?.frequency === 'number' ? controller.atcSession.frequency.toFixed(3) : '',
+      lines:Array.isArray(controller.atis?.lines) ? controller.atis.lines.filter(line => typeof line === 'string' && !/^\s*(?:https?:\/\/|ts[-.])/i.test(line)).slice(0,16) : [],
+      at:Date.parse(controller.atis?.timestamp)
+    }));
+}
+
+// Les données observées n'attribuent jamais une consigne ou une piste.
+const NETWORK_FIELDS = ['callsign','aircraft','wake','origin','destination','rules','route','estimate','squawk'];
+const SIGNAL_GRACE = 3 * MINUTE;
+const TRACKER_INTERVAL = 15000;
+const DEPARTURE_RANGE_NM = 30;
+const AIRPORT_GROUND_RADIUS_NM = 5;
+function networkKey(id) {
+  return Number.isSafeInteger(id) && id > 0 ? String(id) : typeof id === 'string' && /^\d{1,20}$/.test(id) ? id : '';
+}
+function distanceNm(point,track) {
+  if (!point || !Number.isFinite(track?.latitude) || !Number.isFinite(track?.longitude)) return Infinity;
+  const rad = Math.PI / 180;
+  const lat = track.latitude * rad;
+  const base = point[0] * rad;
+  const dLon = (track.longitude - point[1]) * rad;
+  const a = Math.sin((lat - base) / 2) ** 2 + Math.cos(base) * Math.cos(lat) * Math.sin(dLon / 2) ** 2;
+  return 3440.065 * 2 * Math.asin(Math.sqrt(Math.min(1,a)));
+}
+function flightScope(flow,phase,{onGround,distance,altitudeFt,groundSpeed},zone) {
+  if (!Number.isFinite(distance)) return null;
+  const arrived = phase === 'Landed' || phase === 'On Blocks';
+  if (onGround === true || (onGround == null && (arrived || phase === 'Boarding'))) {
+    return distance <= AIRPORT_GROUND_RADIUS_NM && (flow === 'DEP' || arrived || phase === 'Approach');
+  }
+  if (distance > zone.radiusNm) return false;
+  if (!Number.isFinite(altitudeFt)) return null;
+  const airborne = onGround === false || ['Approach','En Route','Initial Climb'].includes(phase) ||
+    (Number.isFinite(groundSpeed) && groundSpeed >= 60);
+  if (!airborne) return null;
+  return altitudeFt <= zone.ceilingFt;
+}
+function networkStatus(flow,phase,{onGround,local,distance,groundSpeed,inApproach}) {
+  if (flow === 'ARR') {
+    if (phase === 'Landed') return 'arrivalGround';
+    if (phase === 'On Blocks' && onGround !== false) return 'onStand';
+    if (phase === 'Approach' && onGround === true) return 'arrivalGround';
+    if (inApproach) return 'approach';
+    return 'announced';
+  }
+  if (onGround !== false && (phase === 'Boarding' || (phase === 'On Blocks' && distance <= 2))) return 'parked';
+  if (local && onGround) return 'localGround';
+  const away = Number.isFinite(distance) && distance >= DEPARTURE_RANGE_NM;
+  if (['En Route','Approach','Landed'].includes(phase) || (phase === 'On Blocks' && distance > 2)) return 'enRoute';
+  if (away && (onGround === false || phase === 'Initial Climb' ||
+    (onGround == null && Number.isFinite(groundSpeed) && groundSpeed >= 60))) return 'enRoute';
+  if (phase === 'Departing' && onGround === true) return 'taxiOut';
+  if (phase === 'Initial Climb' || (phase === 'Departing' && onGround === false)) return 'climbing';
+  return onGround === false ? 'enRoute' : 'filed';
+}
+function networkEstimate(plan,flow) {
+  const validTime = value => Number.isInteger(value) && value >= 0 && value < 86400;
+  const scheduled = validTime(plan.departureTime) ? plan.departureTime : null;
+  const actual = validTime(plan.actualDepartureTime) && plan.actualDepartureTime > 0 ? plan.actualDepartureTime : scheduled;
+  const seconds = flow === 'DEP' ? scheduled : actual != null && Number.isInteger(plan.eet) && plan.eet > 0 ?
+    (actual + plan.eet) % 86400 : null;
+  return seconds == null ? '' : new Date(seconds * 1000).toISOString().slice(11,16);
+}
+function trackAltitude(track,at) {
+  const altitude = track?.altitude;
+  if (!Number.isFinite(altitude) || altitude < -1500 || altitude > 60000) return null;
+  const reportedAt = Date.parse(track.timestamp);
+  return {current:Math.round(altitude) + ' FT',altitudeAt:reportedAt > 0 && reportedAt <= at + MINUTE ? reportedAt : at};
+}
+function trackSquawk(track) {
+  const value = track?.transponder;
+  const code = Number.isInteger(value) ? String(value).padStart(4,'0') : upper(value);
+  return SQUAWK_CODE.test(code) ? code : '';
+}
+function networkFlight(pilot,at,airport,reference,existing,manualFlow = existing?.ivao?.manualFlow) {
+  const key = networkKey(pilot?.id);
+  const callsign = upper(pilot?.callsign);
+  if (!key || !CALLSIGN.test(callsign)) return null;
+  const plan = pilot.flightPlan ?? {};
+  const track = pilot.lastTrack ?? {};
+  const phase = Object.hasOwn(NETWORK_PHASES,track.state) ? track.state : '';
+  const knownCode = value => AERODROME_CODE.test(upper(value)) ? upper(value) : '';
+  const origin = knownCode(plan.departureId);
+  const destination = knownCode(plan.arrivalId);
+  const matchesPlan = origin === airport || destination === airport;
+  const trackAt = Date.parse(track.timestamp);
+  const recentTrack = !Number.isFinite(trackAt) || isRecent(trackAt,3 * MINUTE);
+  const distance = recentTrack ? distanceNm(reference,track) : Infinity;
+  const local = !matchesPlan && (!origin || origin === 'ZZZZ') && (!destination || destination === 'ZZZZ') &&
+    ((track.onGround === true && distance <= 2) || (existing?.ivao && existing.origin === airport && !existing.destination));
+  if (!matchesPlan && !local && !manualFlow) return null;
+  const circuit = origin === airport && destination === airport;
+  const arriving = ['Approach','Landed','On Blocks'].includes(phase);
+  const inbound = matchesPlan ? destination === airport && (!circuit || arriving) : !local && arriving;
+  const flow = manualFlow === 'ARR' || manualFlow === 'DEP' ? manualFlow : inbound ? 'ARR' : 'DEP';
+  const aircraft = [plan.aircraftId,plan.aircraft?.icaoCode].map(upper).find(code => AIRCRAFT_CODE.test(code)) ?? '';
+  const wake = upper(plan.aircraft?.wakeTurbulence);
+  const rules = {I:'IFR',V:'VFR',IFR:'IFR',VFR:'VFR',Y:'Y',Z:'Z'}[upper(plan.flightRules)] ?? '';
+  const category = upper(plan.flightType) === 'M' || plan.aircraft?.military === 'military' ? 'MILITAIRE' :
+    plan.aircraft?.description === 'Helicopter' ? 'HELICO' : '';
+  const squawk = trackSquawk(track);
+  const altitude = trackAltitude(track,at);
+  const observation = {onGround:track.onGround,local,distance,groundSpeed:track.groundSpeed,altitudeFt:track.altitude};
+  const inScope = flightScope(flow,phase,observation,state.settings.approach);
+  const inApproachArea = inScope === true &&
+    track.onGround !== true && !['Landed','On Blocks'].includes(phase);
+  observation.inApproach = (destination === airport && inApproachArea) || (manualFlow && phase === 'Approach');
+  const status = networkStatus(flow,phase,observation);
+  return {callsign,aircraft,wake:['L','M','H','J'].includes(wake) ? wake : TYPES[aircraft] ?? '',
+    origin:local ? airport : origin,destination:local ? '' : destination,rules,flow,route:upper(plan.route).slice(0,600),
+    estimate:networkEstimate(plan,flow),current:altitude?.current ?? '',squawk,
+    status,bay:bayForNetworkFlight(flow,status,undefined,sharedBayLayout,inApproachArea),ivao:{key,plan:networkKey(plan.id),seen:at,
+      absent:null,locked:[],phase,category,inApproachArea,
+      altitudeAt:altitude?.altitudeAt,observedSquawk:squawk,manualFlow,
+      gs:Number.isFinite(track.groundSpeed) ? Math.round(track.groundSpeed) : null},observation,inScope};
+}
+function dismissIvao(key,reason = 'delete') {
+  state.dismissedIvao = state.dismissedIvao.filter(entry => entry.key !== key);
+  state.dismissedIvao.push({key,at:Date.now(),reason});
+}
+function releaseResetMasks() {
+  const retained = state.dismissedIvao.filter(entry => entry.reason !== 'reset');
+  if (retained.length === state.dismissedIvao.length) return false;
+  state.dismissedIvao = retained;
+  delete feeds.tracker.syncedAt;
+  return true;
+}
+function sameItinerary(f,report) {
+  return f.ivao?.plan && f.ivao.plan === report.ivao.plan ||
+    Boolean(f.origin && f.destination && f.origin === report.origin && f.destination === report.destination);
+}
+function updateNetworkFlight(f,report,at,attachManual = false) {
+  const locked = new Set(attachManual ? [...NETWORK_FIELDS.filter(key => f[key]),'status','flow','bay'] : f.ivao.locked);
+  const resumed = f.ivao && (f.ivao.absent != null || f.ivao.key !== report.ivao.key);
+  const changes = {};
+  for (const key of NETWORK_FIELDS) {
+    if (!locked.has(key) && report[key] && (key !== 'callsign' || !state.flights.some(other => other.id !== f.id && other.callsign === report.callsign))) {
+      changes[key] = report[key];
+    }
+  }
+  let flow = locked.has('flow') ? f.flow : report.flow;
+  let rules = changes.rules ?? f.rules;
+  if (locked.has('status') && !validStates(flow,rules).includes(f.status)) {
+    flow = f.flow;
+    if (!validStates(flow,rules).includes(f.status)) rules = f.rules;
+  }
+  const observedStatus = networkStatus(flow,report.ivao.phase,report.observation);
+  const retainApproach = report.inScope == null && flow === 'ARR' && f.status === 'approach' && observedStatus === 'announced';
+  const status = locked.has('status') || retainApproach ? f.status : observedStatus;
+  const inApproachArea = report.inScope == null && report.observation.onGround !== true ?
+    f.ivao?.inApproachArea : report.ivao.inApproachArea;
+  const reroute = dedicatedNetworkBayCode(flow,status,inApproachArea) || status !== f.status || sharedBayLayout.trafficBays[flow] ||
+    departureInClearance(flow,status,f.bay);
+  const bay = !resumed && !locked.has('bay') && reroute ?
+    bayForNetworkFlight(flow,status,f.bay,sharedBayLayout,inApproachArea) : f.bay;
+  const useAltitude = report.ivao.altitudeAt && report.ivao.altitudeAt >= (f.ivao?.altitudeAt ?? 0);
+  const altitudeAt = useAltitude ? report.ivao.altitudeAt : f.ivao?.altitudeAt;
+  const current = useAltitude ? report.current : f.current;
+  const observedSquawk = report.ivao.observedSquawk || f.ivao?.observedSquawk;
+  const ivao = {...report.ivao,altitudeAt,observedSquawk,inApproachArea,locked:[...locked]};
+  const updated = {id:f.id,...normalizeFlight({...f,...changes,flow,rules,status,bay,current,ivao})};
+  if (attachManual) log(updated.callsign,'Liaison IVAO','Fiche manuelle','Connecté',at);
+  else if (resumed) log(updated.callsign,'Reprise du signal IVAO','Signal perdu','Connecté',at);
+  const edits = Object.keys(FIELDS).filter(key => key !== 'current' && f[key] !== updated[key]);
+  for (const key of edits) log(updated.callsign,FIELDS[key] + ' · IVAO',showValue(key,f[key]),showValue(key,updated[key]),at);
+  const index = state.flights.indexOf(f);
+  if (f.bay === updated.bay) state.flights[index] = updated;
+  else {
+    state.flights.splice(index,1);
+    state.flights.push(updated);
+  }
+  return Boolean(attachManual || resumed || f.ivao?.category !== updated.ivao.category || edits.length);
+}
+function syncNetwork(batch) {
+  const {pilots,at} = batch;
+  const timestamp = new Date(at).toISOString();
+  const airport = state.settings.airport;
+  const reference = state.service?.reference;
+  const expired = state.flights.filter(f => f.ivao?.absent != null && at - f.ivao.absent >= SIGNAL_GRACE);
+  if (expired.length) {
+    const ids = new Set(expired.map(f => f.id));
+    state.flights = state.flights.filter(f => !ids.has(f.id));
+    for (const f of expired) log(f.callsign,'Suppression automatique IVAO','Signal perdu','Fiche supprimée',timestamp);
+  }
+  const existing = new Map(state.flights.filter(f => f.ivao).map(f => [f.ivao.key,f]));
+  const manualByCallsign = new Map([...existing.values()].filter(f => f.ivao.manualFlow).map(f => [f.callsign,f]));
+  const reports = new Map();
+  const online = new Set(pilots.map(pilot => networkKey(pilot?.id)).filter(Boolean));
+  for (const pilot of pilots) {
+    const linked = existing.get(networkKey(pilot?.id));
+    const reconnect = linked ? null : manualByCallsign.get(upper(pilot?.callsign));
+    const recovered = reconnect && networkFlight(pilot,at,airport,reference,reconnect);
+    if (recovered && sameItinerary(reconnect,recovered)) {
+      reports.set(recovered.ivao.key,recovered);
+      continue;
+    }
+    if (!state.service && !linked?.ivao.manualFlow) continue;
+    const report = networkFlight(pilot,at,airport,reference,linked);
+    if (report) reports.set(report.ivao.key,report);
+  }
+  const dismissalCount = state.dismissedIvao.length;
+  state.dismissedIvao = state.dismissedIvao.filter(entry => online.has(entry.key) || Date.now() - entry.at < 24 * 60 * MINUTE);
+  const dismissed = new Set(state.dismissedIvao.map(entry => entry.key));
+  let changed = expired.length > 0 || state.dismissedIvao.length !== dismissalCount;
+  let redraw = false;
+  let collisions = 0;
+  for (const [key,report] of reports) {
+    if (dismissed.has(key)) continue;
+    let f = existing.get(key);
+    if (!f) {
+      if (state.archive.some(item => item.ivao?.key === key && !item.ivao.autoArchived)) continue;
+      const sameCallsign = state.flights.find(item => item.callsign === report.callsign);
+      if (sameCallsign) {
+        if ((sameCallsign.ivao && reports.has(sameCallsign.ivao.key)) || !sameItinerary(sameCallsign,report)) {
+          collisions++;
+          continue;
+        }
+        f = sameCallsign;
+      }
+    }
+    if (!report.ivao.manualFlow && !f?.ivao?.manualFlow) {
+      if (report.inScope === false) {
+        if (f?.ivao && at >= f.ivao.seen) {
+          state.flights = state.flights.filter(item => item.id !== f.id);
+          if (selectedId === f.id) selectedId = null;
+          log(f.callsign,'Sortie de zone IVAO',bayCode(f.bay),'Fiche retirée',timestamp);
+          changed = true;
+          redraw = true;
+        }
+        continue;
+      }
+      if (!f && report.inScope == null && (report.flow === 'ARR' || report.status === 'parked' ||
+        ENROUTE_DEPARTURE_STATES.has(report.status))) continue;
+    }
+    if (f) {
+      if (f.ivao?.absent != null && at <= f.ivao.absent) continue;
+      if (at <= (f.ivao?.seen ?? 0) && f.ivao?.key === key && !f.ivao.absent) continue;
+      redraw = updateNetworkFlight(f,report,timestamp,!f.ivao) || redraw;
+    } else {
+      addFlight(report,'Création automatique IVAO');
+      redraw = true;
+    }
+    changed = true;
+  }
+  for (const f of [...state.flights]) {
+    if (!f.ivao || reports.has(f.ivao.key) || at <= f.ivao.seen) continue;
+    if (f.ivao.absent == null) {
+      f.ivao = {...f.ivao,absent:at};
+      if (selectedId === f.id) selectedId = null;
+      log(f.callsign,'Signal IVAO','Connecté','Fiche masquée',timestamp);
+      changed = true;
+      redraw = true;
+    }
+  }
+  return {changed,redraw,collisions};
+}
+function renderLiveTrack() {
+  const flights = new Map(state.flights.filter(f => f.ivao).map(f => [f.id,f]));
+  for (const strip of $('board').querySelectorAll('.strip')) {
+    const f = flights.get(strip.dataset.id);
+    if (!f) continue;
+    const cell = strip.querySelector('[data-observed-altitude]');
+    cell.title = altitudeTitle(f);
+    cell.querySelector('b').textContent = f.current || '—';
+    const alert = stripAlert(f);
+    const banner = strip.querySelector('.emergency-banner');
+    if (banner.textContent !== alert) banner.textContent = alert;
+    banner.hidden = !alert;
+    strip.classList.toggle('emergency',Boolean(alert));
+  }
+  const form = $('dialog').querySelector('form[data-altitude-flight]');
+  const f = form && flights.get(form.dataset.altitudeFlight);
+  if (f) {
+    form.elements.current.value = f.current;
+    form.elements.current.title = altitudeTitle(f);
+  }
+}
+function updateTrackWhileEditing(batch) {
+  if (feeds.tracker.trackApplied >= batch.at) return;
+  feeds.tracker.trackApplied = batch.at;
+  const pilots = new Map(batch.pilots.map(pilot => [networkKey(pilot?.id),pilot]));
+  let changed = false;
+  for (const f of state.flights) {
+    if (!f.ivao) continue;
+    const track = pilots.get(f.ivao.key)?.lastTrack;
+    const squawk = trackSquawk(track);
+    if (squawk && squawk !== f.ivao.observedSquawk) {
+      f.ivao.observedSquawk = squawk;
+      changed = true;
+    }
+    const altitude = trackAltitude(track,batch.at);
+    if (!altitude || altitude.altitudeAt < (f.ivao.altitudeAt ?? 0)) continue;
+    if (f.current === altitude.current && f.ivao.altitudeAt === altitude.altitudeAt) continue;
+    f.current = altitude.current;
+    f.ivao.altitudeAt = altitude.altitudeAt;
+    changed = true;
+  }
+  if (changed) {
+    renderLiveTrack();
+    save();
+  }
+}
+function flushNetwork() {
+  const tracker = feeds.tracker;
+  const batch = tracker.traffic;
+  if (!hasNetworkTraffic() || !batch || tracker.syncedAt >= batch.at || !isRecent(batch.at,3 * MINUTE)) return;
+  if (drag || !$('popover').hidden || ($('dialog').open && !$('service-feeds'))) {
+    updateTrackWhileEditing(batch);
+    return;
+  }
+  const {changed,redraw,collisions} = syncNetwork(batch);
+  tracker.syncedAt = batch.at;
+  tracker.collisions = collisions;
+  if (redraw) commit();
+  else {
+    renderOps();
+    if (changed) {
+      renderLiveTrack();
+      save();
+    }
+  }
+}
+async function ensureAirportReference() {
+  const current = state;
+  const service = state.service;
+  const airport = state.settings.airport;
+  if (service?.reference || (!service && airportClock(airport).formatter)) return;
+  try {
+    const airports = await request(CATALOGUE_BASE + 'airports.csv','csv',12 * 60 * MINUTE);
+    const reference = findAirport(airports,airport)?.reference;
+    if (state !== current || state.settings.airport !== airport || !reference) return;
+    airportClock(airport,reference);
+    if (service) {
+      service.reference = reference;
+      save();
+    }
+  } catch { /* Le suivi des plans de vol fonctionne aussi sans coordonnées. */ }
+}
+function activeAtis() {
+  const snapshot = feeds.tracker;
+  if (!state.service || !snapshot.data || !isRecent(snapshot.received,3 * MINUTE)) return null;
+  const known = new Set(serviceRunways());
+  const local = state.service.station;
+  const priority = entry => entry.callsign === local ? 4 : entry.callsign.endsWith('_ATIS') ? 3 : entry.callsign.endsWith('_TWR') ? 2 : 1;
+  return snapshot.data.filter(entry => !entry.callsign.endsWith('_CTR') && isRecent(entry.at,MAX_ATIS_AGE))
+    .map(entry => ({...entry,...declaredRunways(entry.lines,known)})).filter(entry => entry.runways.length)
+    .sort((a,b) => priority(b) - priority(a) || b.at - a.at)[0] ?? null;
+}
+function activeRunways() {
+  return state.settings.runways.length || !state.service ? state.settings.runways : activeAtis()?.runways ?? [];
+}
+function resetFeeds() { feeds = {weather:{},tracker:{}}; }
+function hasNetworkTraffic() {
+  return Boolean(state.service || state.flights.some(f => f.ivao?.manualFlow));
+}
+function trackerTraffic(data) {
+  const at = Date.parse(data?.updatedAt);
+  validate(Array.isArray(data?.clients?.pilots) && isRecent(at,3 * MINUTE),'Le flux IVAO est incomplet ou trop ancien.');
+  return {pilots:data.clients.pilots,at};
+}
+async function refreshService(force = false) {
+  if (!hasNetworkTraffic()) return;
+  const session = feeds;
+  const airport = state.settings.airport;
+  async function refresh(key,url,interval,parse) {
+    const snapshot = feeds[key];
+    if (snapshot.pending || (!force && snapshot.requested && Date.now() - snapshot.requested < interval)) return;
+    snapshot.pending = true;
+    snapshot.requested = Date.now();
+    renderOps();
+    try {
+      const data = await request(url,'json',interval / 2,force);
+      snapshot.data = parse(data);
+      if (key === 'tracker') snapshot.traffic = trackerTraffic(data);
+      snapshot.received = Date.now();
+      snapshot.error = false;
+    } catch {
+      snapshot.error = true;
+    } finally {
+      snapshot.pending = false;
+      if (feeds === session) {
+        flushNetwork();
+        renderOps();
+        if ($('dialog').open && $('service-feeds')) {
+          const scroll = $('dialog').scrollTop;
+          const focused = document.activeElement?.id === 'refresh-feeds';
+          weatherDialog();
+          if (focused) $('refresh-feeds').focus({preventScroll:true});
+          $('dialog').scrollTop = scroll;
+        }
+      }
+    }
+  }
+  await Promise.all([
+    state.service && refresh('weather',IVAO_API + 'airports/all/metar',5 * MINUTE,data => {
+      validate(Array.isArray(data),'Réponse METAR invalide.');
+      return data.filter(item => item.airportIcao === airport).map(parseMetar).filter(Boolean).sort((a,b) => b.at - a.at)[0] ?? null;
+    }),
+    refresh('tracker',IVAO_TRACKER,TRACKER_INTERVAL,data => state.service ? parseTracker(data,airport) : [])
+  ]);
+}
+function importIvaoFlight(pilot,at,flow) {
+  const report = networkFlight(pilot,at,state.settings.airport,state.service?.reference,null,flow);
+  validate(report,'Ce vol IVAO ne peut pas être importé.');
+  const key = report.ivao.key;
+  let flight = state.flights.find(f => f.ivao?.key === key);
+  const sameCallsign = state.flights.find(f => f.callsign === report.callsign);
+  if (sameCallsign && sameCallsign !== flight) {
+    validate(!flight && sameItinerary(sameCallsign,report),'Une autre fiche de vol utilise déjà cet indicatif.');
+    flight = sameCallsign;
+  }
+  if (!flight) {
+    const archived = state.archive.find(f => f.ivao?.key === key);
+    if (archived) flight = restoreFlight(archived,true);
+  }
+  if (flight) updateNetworkFlight(flight,report,new Date(at).toISOString(),!flight.ivao);
+  else flight = addFlight(report,'Ajout manuel IVAO');
+  state.dismissedIvao = state.dismissedIvao.filter(entry => entry.key !== key);
+  return flight.id;
+}
+function addIvaoDialog() {
+  const body = showDialog('AJOUTER UN VOL IVAO',
+    '<form><div class="settings-grid"><label class="field">Indicatif IVAO<input name="callsign" maxlength="7" required autocomplete="off" placeholder="AFR123"></label>' +
+    '<label class="field">Sens du trafic<select name="flow"><option value="AUTO">Automatique</option><option value="ARR">Arrivée</option><option value="DEP">Départ</option></select></label></div>' +
+    '<p class="help">Saisis l’indicatif exact d’un pilote connecté. Tu peux suivre un vol même si son plan ne concerne pas cet aérodrome.</p>' +
+    dialogActions('AJOUTER LE VOL') + '</form>');
+  const form = body.querySelector('form');
+  const input = form.elements.callsign;
+  const submit = form.querySelector('button:not([type])');
+  const message = form.querySelector('.error');
+  input.focus();
+  form.onsubmit = async event => {
+    event.preventDefault();
+    if (submit.disabled) return;
+    const callsign = upper(input.value);
+    if (!CALLSIGN.test(callsign)) {
+      message.textContent = 'Saisis un indicatif de 2 à 7 lettres ou chiffres.';
+      return;
+    }
+    const flow = form.elements.flow.value;
+    const session = feeds;
+    submit.disabled = true;
+    message.textContent = '';
+    try {
+      const {pilots,at} = trackerTraffic(await request(IVAO_TRACKER,'json',TRACKER_INTERVAL / 2));
+      if (!form.isConnected || !$('dialog').open || feeds !== session) return;
+      const matches = pilots.filter(pilot => upper(pilot?.callsign) === callsign && networkKey(pilot.id));
+      validate(matches.length > 0,'Aucun pilote connecté avec l’indicatif ' + callsign + '.');
+      validate(matches.length === 1,'Plusieurs pilotes utilisent cet indicatif sur IVAO.');
+      selectedId = importIvaoFlight(matches[0],at,flow);
+      clearFilters();
+      commit();
+      closeDialog();
+      $('board').querySelector('[data-id="' + selectedId + '"] [data-flight]')?.focus();
+      refreshService();
+    } catch (error) {
+      if (form.isConnected) message.textContent = error instanceof TypeError ? 'Connexion au flux IVAO impossible.' : error.message;
+    } finally {
+      submit.disabled = false;
+    }
+  };
+}
+function profileKey(db) {
+  return STORAGE_KEY + '.profile.' + (db.service ? db.settings.airport : 'demo');
+}
+function rememberProfile() {
+  const key = profileKey(state);
+  profiles.set(key,state);
+  try { localStorage.setItem(key,JSON.stringify(state)); }
+  catch { /* La copie en mémoire reste disponible pendant cette session. */ }
+}
+function storedProfile(key) {
+  if (profiles.has(key)) return profiles.get(key);
+  try {
+    const serialized = localStorage.getItem(key);
+    if (serialized) return decodeState(JSON.parse(serialized));
+  } catch { /* Une sauvegarde illisible ne doit pas bloquer la prise de service. */ }
+  return null;
+}
+async function startService(station,isCurrent) {
+  validate(AERODROME_CODE.test(station) || IVAO_STATION.test(station),
+    'Saisis un code OACI à quatre lettres ou une position d’aérodrome, par exemple LFPG_TWR.');
+  const source = state;
+  const scope = feeds;
+  const airport = station.slice(0,4);
+  const key = STORAGE_KEY + '.profile.' + airport;
+  const existing = source.service && source.settings.airport === airport ? source : storedProfile(key);
+  let catalogue;
+  try {
+    catalogue = await airportCatalogue(airport);
+  } catch (error) {
+    if (!existing?.service) {
+      if (error.message.startsWith('Aérodrome introuvable')) throw error;
+      throw new Error('Catalogue de pistes indisponible. Vérifie la connexion et réessaie.');
+    }
+    catalogue = {name:existing.settings.airportName,ends:existing.service.ends,reference:existing.service.reference};
+  }
+  if (state !== source || feeds !== scope || !isCurrent()) return false;
+  const next = existing ?? blankState();
+  const service = normalizeService({station:station === airport ? '' : station,ends:catalogue.ends,reference:catalogue.reference},airport);
+  if (next !== source) rememberProfile();
+  next.settings = {...next.settings,airport,airportName:catalogue.name.slice(0,120),
+    runways:existing ? next.settings.runways : [],
+    colors:existing ? next.settings.colors : copy(source.settings.colors)};
+  next.service = service;
+  restoreSessionParameters(next);
+  applyBayLayout(next,sharedBayLayout);
+  state = next;
+  resetFeeds();
+  releaseResetMasks();
+  selectedId = null;
+  clearFilters();
+  log('SYSTÈME','Prise de service','—',station);
+  commit();
+  ensureAirportReference();
+  return true;
+}
+async function connectIvao() {
+  const button = $('connect-ivao');
+  const airport = state.settings.airport;
+  button.disabled = true;
+  button.textContent = 'CHARGEMENT IVAO…';
+  try {
+    if (state.service && releaseResetMasks()) {
+      save();
+      flushNetwork();
+    }
+    if (state.service || await startService(airport,() => state.settings.airport === airport && !$('dialog').open)) {
+      await refreshService(true);
+    }
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    button.disabled = false;
+    renderOps();
+  }
+}
+function takeServiceDialog() {
+  const body = showDialog('PRISE DE SERVICE',
+    '<form><label class="field">Aérodrome OACI ou position IVAO<input name="station" autocomplete="off" maxlength="56" required placeholder="LFPG ou LFPG_TWR" value="' +
+      esc(state.service?.station || state.settings.airport) + '"></label>' +
+    '<p class="help">Charge les pistes, le METAR et l’ATIS IVAO. Chaque aérodrome conserve ses vols. La configuration des baies est commune.</p>' +
+    dialogActions('PRENDRE LE SERVICE') + '</form>' +
+    (state.service ? '<div class="subsection"><button class="btn" id="leave-service">RETOUR AU MODE SIMULATION</button></div>' : ''));
+  const form = body.querySelector('form');
+  const input = form.elements.station;
+  input.select();
+  form.onsubmit = async event => {
+    event.preventDefault();
+    const message = form.querySelector('.error');
+    const button = form.querySelector('button:not([type])');
+    if (button.disabled) return;
+    const station = upper(input.value);
+    button.disabled = true;
+    button.textContent = 'CHARGEMENT…';
+    message.textContent = '';
+    try {
+      if (!await startService(station,() => form.isConnected && $('dialog').open)) return;
+      closeDialog();
+      refreshService();
+    } catch (error) {
+      message.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      button.textContent = 'PRENDRE LE SERVICE';
+    }
+  };
+  const leave = $('leave-service');
+  if (leave) leave.onclick = () => {
+    rememberProfile();
+    state = storedProfile(STORAGE_KEY + '.profile.demo') ?? seedState();
+    restoreSessionParameters(state);
+    applyBayLayout(state,sharedBayLayout);
+    resetFeeds();
+    selectedId = null;
+    clearFilters();
+    commit();
+    ensureAirportReference();
+    closeDialog();
+  };
+}
+// Liens directs des catalogues officiels d’IVAO France et de la division XU.
+const MANEX_CIVILS = [
+  'fmcz-marcel-henry','fmee-la-reunion-roland-garros','lfbd-bordeaux-merignac',
+  'lfbh-la-rochelle-ile-de-re','lfbi-poitiers-biard','lfbl-limoges-bellegarde',
+  'lfbo-toulouse-blagnac','lfbp-pau-pyrenees','lfbz-biarritz-pays-basque',
+  'lfjl-metz-nancy-lorraine','lfkb-bastia-poretta','lfkj-ajaccio-napoleon-bonaparte',
+  'lflb-chambery-aix-les-bains','lflc-clermont-ferrand-auvergne','lfll-lyon-saint-exupery',
+  'lfln-saint-yan','lfml-marseille-provence','lfmn-nice-cote-dazur',
+  'lfmt-montpellier-mediterranee','lfob-beauvais-tille','lfpg-paris-charles-de-gaulle',
+  'lfpm-melun-villaroche','lfpo-paris-orly','lfqq-lille-lesquin',
+  'lfrb-brest-bretagne','lfrn-rennes-saint-jacques','lfrs-nantes-atlantique',
+  'lfsb-bale-mulhouse','lfst-strasbourg-entzheim','lfvp-saint-pierre',
+  'ntaa-tahiti-faaa','nwww-noumea-la-tontouta','soca-cayenne-felix-eboue',
+  'tfff-martinique-aime-cesaire','tffr-guadeloupe-maryse-conde'
+];
+const MANEX_MILITAIRES = [
+  'lfbc-cazaux','lfbm-mont-de-marsan','lfks-solenzara',
+  'lfmi-istres-le-tube','lfoa-avord','lfoe-evreux-fauville',
+  'lfpv-villacoublay-velizy','lfrh-lorient-lann-bihoue','lfrj-landivisiau',
+  'lfsi-saint-dizier-robinson','lfso-nancy-ochey','lfsx-luxeuil-saint-sauveur'
+];
+const MANEX_URLS = new Map([
+  ...MANEX_CIVILS.map(slug => [slug.slice(0,4).toUpperCase(),'https://wiki.ivao.fr/books/manex-aeroports-civils/page/' + slug]),
+  ...MANEX_MILITAIRES.map(slug => [slug.slice(0,4).toUpperCase(),'https://wiki.ivao.fr/books/manex-aeroports-militaires/page/' + slug]),
+  ['EGLL','https://wiki.ivao.aero/en/home/divisions/xu/atc/aerodrome/local-procedure/london/egll']
+]);
+function openManex() {
+  if (!state.service) return;
+  const {airport,manexUrl} = state.settings;
+  const url = manexUrl || MANEX_URLS.get(airport);
+  if (url) {
+    window.open(url,'_blank','noopener,noreferrer');
+    return;
+  }
+  const body = showDialog('MANEX / ' + airport,
+    '<p class="help">Aucun lien direct enregistré pour cet aérodrome. Consulte la documentation IVAO ou ajoute le lien dans les paramètres.</p>' +
+    '<div class="inline"><a class="btn" href="https://wiki.ivao.aero/en/home" target="_blank" rel="noopener noreferrer">DOCUMENTATION IVAO ↗</a>' +
+    '<button class="btn primary" id="configure-manex" type="button">CONFIGURER LE LIEN</button></div>');
+  body.querySelector('#configure-manex').onclick = () => {
+    settingsDialog();
+    $('dialog-body').querySelector('[name="manexUrl"]').focus();
+  };
+}
+function weatherDialog() {
+  if (!state.service) {
+    const body = showDialog('MÉTÉO DE SIMULATION','<p class="help">QNH simulé de ' + state.settings.qnh +
+      ' hPa. Prendre le service pour afficher le METAR et les positions du réseau IVAO.</p>' +
+      '<button class="btn primary" id="weather-start">PRISE DE SERVICE</button>');
+    body.querySelector('#weather-start').onclick = takeServiceDialog;
+    return;
+  }
+  const weather = feeds.weather.data;
+  const fresh = freshWeather();
+  const atis = activeAtis();
+  const preferred = runwaySuggestion(fresh);
+  const online = feeds.tracker.data && isRecent(feeds.tracker.received,3 * MINUTE) ? feeds.tracker.data : null;
+  const report = weather ? '<p class="mono">' + esc(weatherDisplay(weather)) + '</p>' +
+    '<p class="help">Observation ' + shortUtc(weather.at) + (fresh ? '' : ' · Ancienne') +
+    (weather.visibility ? ' · Visibilité ' + esc(weather.visibility) : '') +
+    (weather.temp == null ? '' : ' · Température ' + weather.temp + ' °C') +
+    (weather.dew == null ? '' : ' · Point de rosée ' + weather.dew + ' °C') +
+    (weather.variable ? ' · Vent variable ' + weather.variable : '') +
+    (feeds.weather.error ? ' · Échec de la dernière actualisation' : '') + '</p><p class="raw-atis">' + esc(weather.raw) + '</p>' :
+    '<p class="help">' + (feeds.weather.pending ? 'Chargement du METAR…' : feeds.weather.error ?
+      'Flux METAR IVAO inaccessible.' : 'IVAO ne publie aucun METAR pour cet aérodrome.') + '</p>';
+  const stations = online?.map(entry => '<section class="runway-card"><h3>' + entry.callsign +
+    (entry.frequency ? ' · ' + entry.frequency : '') + '</h3>' +
+    (entry.lines.length ? '<p class="raw-atis">' + esc(entry.lines.join('\n')) + '</p>' : '<p class="help">ATIS absent.</p>') + '</section>').join('');
+  const body = showDialog('MÉTÉO & IVAO / ' + state.settings.airport,'<div id="service-feeds">' +
+    '<div class="inline"><button class="btn" id="refresh-feeds"' + (feeds.weather.pending || feeds.tracker.pending ? ' disabled' : '') +
+    '>ACTUALISER</button><a class="btn" href="https://webeye.ivao.aero/" target="_blank" rel="noopener noreferrer">IVAO WEBEYE ↗</a></div>' +
+    '<div class="subsection"><h3>DERNIER METAR IVAO</h3>' + report + '</div>' +
+    '<div class="subsection"><h3>CONFIGURATION DE PISTES</h3><p class="help">' +
+    (state.settings.runways.length ? 'Forçage manuel · ' + state.settings.runways.join(' / ') : atis ?
+      'ATIS ' + atis.callsign + ' · ' + shortUtc(atis.at) + ' · ' + atis.runways.join(' / ') +
+      (atis.arrivals.length ? ' · Arrivées ' + atis.arrivals.join(' / ') : '') +
+      (atis.departures.length ? ' · Départs ' + atis.departures.join(' / ') : '') :
+      preferred ? 'Pistes actives non annoncées. Suggestion vent seul · ' + preferred.id + '.' : 'Pistes actives non annoncées.') +
+    '</p><p class="help">Pistes numérotées issues d’OurAirports. La suggestion utilise le vent du METAR et les orientations vraies du catalogue.</p></div>' +
+    '<div class="subsection"><h3>POSITIONS EN LIGNE · IVAO WHAZZUP</h3>' + (stations ? '<div class="feed-list">' + stations + '</div>' :
+      '<p class="help">' + (online ? 'Aucune position d’aérodrome connectée.' : feeds.tracker.pending ? 'Chargement IVAO…' : 'Flux des positions IVAO indisponible.') +
+      '</p>') + '</div></div>');
+  body.querySelector('#refresh-feeds').onclick = () => {
+    $('refresh-feeds').disabled = true;
+    refreshService(true);
+  };
+}
+
+// Trafic fictif et initialisation de la station.
+const TRAFFIC = [
+  ['AFR','A320','LFMN','DEP','filed','DCT OKASI'],
+  ['BAW','A320','EGLL','ARR','approach',''],
+  ['DLH','A321','EDDF','ARR','announced','DCT LORNI'],
+  ['EZY','A320','LSGG','ARR','approach',''],
+  ['KLM','E190','EHAM','DEP','ifrClear','DCT NURMO'],
+  ['IBE','A21N','LEMD','DEP','taxiClear','DCT PILUL'],
+  ['SWR','A20N','LSZH','ARR','announced',''],
+  ['AFR','A359','CYYZ','DEP','startClear','DCT EVX']
+];
+function generateTraffic() {
+  const local = state.settings.airport;
+  const runways = activeRunways();
+  const start = Math.floor(Math.random() * TRAFFIC.length);
+  const usedCallsigns = new Set(state.flights.map(f => f.callsign));
+  const usedSquawks = new Set(state.flights.map(f => f.squawk));
+  const generated = [];
+  for (let i = 0; i < TRAFFIC.length && generated.length < 5; i++) {
+    const [operator,aircraft,remote,flow,status,plannedRoute] = TRAFFIC[(start + i) % TRAFFIC.length];
+    if (remote === local) continue;
+    const base = 100 + Math.floor(Math.random() * 9900);
+    let callsign = '';
+    for (let j = 0; j < 9900; j++) {
+      const candidate = operator + (100 + (base - 100 + j) % 9900);
+      if (!usedCallsigns.has(candidate)) { callsign = candidate; break; }
+    }
+    if (!callsign) continue;
+    usedCallsigns.add(callsign);
+    const squawkBase = Math.floor(Math.random() * 512);
+    let squawk = '';
+    for (let j = 0; j < 512; j++) {
+      const candidate = '4' + ((squawkBase + j) % 512).toString(8).padStart(3,'0');
+      if (!usedSquawks.has(candidate)) { squawk = candidate; break; }
+    }
+    if (squawk) usedSquawks.add(squawk);
+    const preferred = runways.filter(r => flow === 'ARR' ? ['26L','27R','08R','09L'].includes(r) :
+      ['26R','27L','08L','09R'].includes(r));
+    const pool = local === 'LFPG' && preferred.length ? preferred : runways;
+    const runway = pool.length ? pool[(start + i) % pool.length] : '';
+    const approach = status === 'approach';
+    const route = local === 'LFPG' ? approach && runway && DEFAULTS.runways.includes(runway) ? 'ILS ' + runway : plannedRoute : '';
+    generated.push({callsign,aircraft,wake:TYPES[aircraft],rules:'IFR',flow,runway,squawk,status,bay:bayForStatus(status),
+      origin:flow === 'ARR' ? remote : local,destination:flow === 'DEP' ? remote : local,
+      estimate:utcMinute(4 + generated.length * 4),current:approach ? '4500 FT' : '',assigned:approach ? '3000 FT' : '',
+      speed:approach ? '180 KT' : '',route});
+  }
+  for (const flight of generated) addFlight(flight,'Trafic généré');
+  clearFilters();
+  commit();
+  toast(generated.length + ' vol(s) fictif(s) ajouté(s).');
+}
+const filterIds = ['search','filter-rules','filter-flow','filter-status','filter-runway'];
+function clearFilters() { filterIds.forEach(id => $(id).value = ''); }
+$('filter-toggle').onclick = () => {
+  const options = $('filter-options');
+  options.hidden = !options.hidden;
+  $('filter-toggle').setAttribute('aria-expanded',String(!options.hidden));
+  if (!options.hidden) $('filter-rules').focus();
+};
+$('filter-clear').onclick = () => { clearFilters(); renderBoard(); };
+for (const id of filterIds) {
+  $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {
+    closePopover();
+    renderBoard();
+  });
+}
+$('dialog-close').onclick = closeDialog;
+$('dialog-body').addEventListener('click',event => { if (event.target.closest('[data-close]')) closeDialog(); });
+$('new-flight').onclick = () => flightDialog();
+$('add-ivao').onclick = addIvaoDialog;
+$('generate').onclick = generateTraffic;
+$('settings').onclick = () => settingsDialog();
+$('bay-visibility').onclick = bayVisibilityDialog;
+$('connect-ivao').onclick = connectIvao;
+$('manex').onclick = openManex;
+$('take-service').onclick = takeServiceDialog;
+$('weather-details').onclick = weatherDialog;
+$('runways').onclick = () => runwayDialog();
+$('history').onclick = historyDialog;
+$('archives').onclick = archiveDialog;
+$('alert').addEventListener('click',event => { if (event.target.closest('#open-alert')) runwayDialog(); });
+$('runways-top').addEventListener('click',event => {
+  const button = event.target.closest('[data-runway]');
+  if (button) runwayDialog(button.dataset.runway);
+});
+$('filter-status').innerHTML = option('','Tous les états','') + statusOptions(Object.keys(STATUS),'');
+function airportClock(airport,reference) {
+  const cached = airportClocks.get(airport);
+  const location = reference?.join(',');
+  if (cached && (!location || cached.location === location)) return cached;
+  const storageKey = STORAGE_KEY + '.timezone.' + airport;
+  let formatter;
+  let timeZone = airport === 'LFPG' ? 'Europe/Paris' : '';
+  try {
+    if (reference && typeof globalThis.tzlookup === 'function') timeZone = globalThis.tzlookup(...reference);
+    if (!timeZone) timeZone = localStorage.getItem(storageKey);
+    if (timeZone) {
+      formatter = new Intl.DateTimeFormat('fr-FR',{
+        timeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'
+      });
+    }
+  } catch { /* Le fuseau reste indisponible si les coordonnées ou le cache sont invalides. */ }
+  const clock = {location,formatter,timeZone:formatter ? timeZone : ''};
+  airportClocks.set(airport,clock);
+  if (formatter && reference) {
+    try { localStorage.setItem(storageKey,timeZone); }
+    catch { /* Le fuseau reste disponible en mémoire. */ }
+  }
+  return clock;
+}
+function clock() {
+  const iso = now();
+  const clockTime = $('utc-clock');
+  clockTime.dateTime = iso;
+  clockTime.textContent = iso.slice(11,19);
+  $('utc-date').textContent = iso.slice(0,10).split('-').reverse().join('/');
+  const airport = state.settings.airport;
+  const local = $('local-clock');
+  const {formatter,timeZone} = airportClock(airport,state.service?.reference);
+  const parts = formatter ? Object.fromEntries(formatter.formatToParts(new Date(iso)).map(({type,value}) => [type,value])) : null;
+  $('local-clock-label').textContent = 'HEURE LOCALE · ' + airport;
+  local.dateTime = parts ? iso : '';
+  local.textContent = parts ? [parts.hour,parts.minute,parts.second].join(':') : '—';
+  local.title = timeZone || 'Fuseau horaire indisponible';
+  $('local-date').textContent = parts ? [parts.day,parts.month,parts.year].join('/') : '';
+  flushNetwork();
+}
+window.efsAssistantContext = (includeBoard = false) => {
+  const {airport,airportName,bays,manexUrl} = state.settings;
+  const selected = activeFlight(selectedId);
+  const describe = flight => ({
+    callsign:flight.callsign,aircraft:flight.aircraft,wake:flight.wake,origin:flight.origin,destination:flight.destination,
+    rules:flight.rules,flow:flight.flow,bay:bays[flight.bay]?.code,bayName:bays[flight.bay]?.name,
+    status:STATUS[flight.status][1],runway:flight.runway,current:flight.current,assigned:flight.assigned,squawk:flight.squawk,
+    etaEtdUtc:flight.estimate,ivao:Boolean(flight.ivao),signalLost:Boolean(flight.ivao?.absent)
+  });
+  const weather = freshWeather();
+  const flights = includeBoard ? state.flights.filter(isActiveFlight) : null;
+  return {airport,airportName,manexUrl:manexUrl || MANEX_URLS.get(airport) || '',
+    observedAt:now(),service:state.service?.station || (state.service ? 'IVAO' : 'Simulation locale'),
+    activeRunways:activeRunways(),runwaySource:$('rwy-source').hidden ? 'Configuration de simulation' : $('rwy-source').textContent,
+    runwayCatalogue:state.service?.ends.map(({id,length,heading,surface}) => ({id,lengthM:length,headingTrue:heading,surface})) ?? [],
+    weather:weather ? {source:'METAR IVAO',raw:weather.raw,at:new Date(weather.at).toISOString()} : null,
+    selected:selected ? {...describe(selected),route:selected.route,assignedSpeed:selected.speed,assignedHeading:selected.heading,
+      assignedTransferFrequency:selected.frequency} : null,
+    board:flights?.slice(0,300).map(describe) ?? null,totalFlights:flights?.length ?? null};
+};
+window.addEventListener('storage',event => {
+  if (event.key !== BAY_LAYOUT_KEY || !event.newValue) return;
+  let layout;
+  try { layout = decodeBayLayout(JSON.parse(event.newValue)); }
+  catch { return; }
+  const withoutVisibility = (key,value) => key === 'hidden' ? undefined : value;
+  const displayOnly = JSON.stringify(layout,withoutVisibility) === JSON.stringify(sharedBayLayout,withoutVisibility);
+  sharedBayLayout = layout;
+  if (displayOnly) state.settings.bays = copy(layout.bays);
+  else applyBayLayout(state,layout);
+  render();
+});
+clock();
+setInterval(clock,1000);
+setInterval(() => refreshService(),5000);
+render();
+ensureAirportReference();
+refreshService();
+if (startupMessage) {
+  $('save-state').textContent = 'SAUVEGARDE À VÉRIFIER';
+  $('system-state').textContent = 'MÉMOIRE SEULE';
+  toast(startupMessage);
+} else save();
+</script>
+<script src="assistant.js" defer></script>
+</body>
+</html>
