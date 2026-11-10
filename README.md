@@ -21,6 +21,20 @@ npm.cmd start
 
 Sous macOS ou Linux, utilise `npm ci` puis `npm start`. Ouvre ensuite [E-Strips en local](http://127.0.0.1:4310/).
 
+## Mises à jour automatiques
+
+À partir de la version **1.2.0**, le lanceur Windows et `npm start` vérifient la dernière release stable du dépôt **Sklaz/STRIP-IVAO**. Au démarrage, E-Strips télécharge le nouveau code de l’application, vérifie son empreinte SHA-256 et l’installe dans un dossier séparé. Une coupure de réseau laisse la version locale disponible. Les données de simulation, le fichier `.env` et les documents de l’assistant restent sur ton ordinateur. Garde la même adresse et le même navigateur pour retrouver tes strips.
+
+La mise à jour automatique utilise le lanceur et les dépendances déjà installés. Si une release change le lanceur ou demande de nouvelles dépendances, installe le ZIP Windows complet ou télécharge les sources de la release et relance `npm ci`. Pour arrêter les vérifications automatiques, ajoute `EFS_AUTO_UPDATE=0` à ton fichier `.env`.
+
+### Publier une nouvelle version
+
+1. Envoie les fichiers à jour sur GitHub, y compris `.github/workflows/mise-a-jour.yml` la première fois.
+2. Dans **Releases**, publie une release stable avec un nouveau tag, par exemple `v1.2.0` pour la première version de ce lanceur. Joins le ZIP Windows si tu proposes un installateur complet.
+3. GitHub Actions génère `E-Strips-Update.json` à partir des fichiers du tag et le joint à la release. Les installations compatibles récupèrent ce paquet au prochain lancement. [Déclenchement des workflows par une release](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#release)
+
+Pour une release qui verrouille les pièces jointes dès sa publication, génère le paquet avec `node fabriquer-mise-a-jour.mjs v1.2.0` en adaptant le tag, puis joins `E-Strips-Update.json` au brouillon avant de le publier.
+
 ## Liaison avec Aurora
 
 Lance Aurora et le serveur E-Strips sur le même ordinateur. Dans Aurora, active **Settings → Other → Software → 3rd Party Software Access**, puis clique sur **Lier Aurora** dans l’en-tête d’E-Strips. Les consignes d’altitude, de vitesse, de transpondeur, de point ou cap et de poste sont affichées sur les strips IVAO dont l’indicatif est présent dans Aurora. La liaison lit les données du radar et conserve la répartition des strips propre à E-Strips. [Documentation de l’API Aurora](https://wiki.ivao.aero/en/home/devops/manuals/Aurora-3rd-parties-documentation)

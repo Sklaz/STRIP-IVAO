@@ -3,7 +3,8 @@ import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promise
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const directory = process.env.EFS_AI_DATA_DIR || fileURLToPath(new URL('./.atc-ai-data/', import.meta.url));
+const directory = process.env.EFS_AI_DATA_DIR ||
+  fileURLToPath(new URL('./.atc-ai-data/',process.env.EFS_INSTALL_URL || import.meta.url));
 export const MAX_DOCUMENT = 15 * 1024 * 1024;
 export const ICAO = /^[A-Z]{4}$/;
 const DOCUMENT_ID = /^[a-f0-9-]{36}$/;

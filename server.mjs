@@ -116,4 +116,11 @@ const server = createServer(async (req,res) => {
     if (!res.headersSent) json(res,error.status || 500,{error:error.status ? error.message : 'Erreur du serveur local.'});
   }
 });
-server.listen(port,'127.0.0.1',() => console.log('E-Strips · http://127.0.0.1:' + port));
+await new Promise((resolve,reject) => {
+  server.once('error',reject);
+  server.listen(port,'127.0.0.1',() => {
+    server.off('error',reject);
+    console.log('E-Strips · http://127.0.0.1:' + port);
+    resolve();
+  });
+});

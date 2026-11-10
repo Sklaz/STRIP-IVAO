@@ -1,3 +1,5 @@
 .env
 .atc-ai-data/
 node_modules/
+.efs-updates/
+E-Strips-Update.json

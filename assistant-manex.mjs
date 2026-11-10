@@ -6,7 +6,7 @@ import { ICAO, httpsUrl, pdfPages, requireInput } from './assistant-docs.mjs';
 const cache = new Map();
 const CACHE_MS = 20 * 60 * 1000;
 const MAX_BYTES = 12 * 1024 * 1024;
-const cacheDirectory = new URL('./.atc-ai-data/manex/',import.meta.url);
+const cacheDirectory = new URL('./.atc-ai-data/manex/',process.env.EFS_INSTALL_URL || import.meta.url);
 
 function cacheFile(url) {
   return new URL(createHash('sha256').update(url).digest('hex') + '.json',cacheDirectory);
