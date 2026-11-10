@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { answerQuestion, assistantStatus } from './assistant-model.mjs';
 import { documentSummary, ICAO, importDocument, listDocuments, MAX_DOCUMENT, readDocument, requireInput } from './assistant-docs.mjs';
 import { loadManex } from './assistant-manex.mjs';
+import { AURORA_CALLSIGN, MAX_AURORA_CALLSIGNS, readAurora } from './aurora.mjs';
 
 const port = Number(process.env.PORT || 4310);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('PORT invalide.');
@@ -16,6 +17,7 @@ const staticFiles = new Map([
 ]);
 let importing = false;
 let answering = false;
+let readingAurora = false;
 
 function send(res,status,body,type = 'application/json; charset=utf-8') {
   res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
@@ -38,6 +40,11 @@ async function readBody(req,max) {
   }
   return Buffer.concat(chunks);
 }
+async function readJsonBody(req,max) {
+  const bytes = await readBody(req,max);
+  try { return JSON.parse(bytes.toString('utf8')); }
+  catch { requireInput(false,'Requête JSON invalide.'); }
+}
 
 const server = createServer(async (req,res) => {
   try {
@@ -51,6 +58,18 @@ const server = createServer(async (req,res) => {
     if (req.method === 'GET' && staticFiles.has(path)) {
       const [name,type] = staticFiles.get(path);
       return send(res,200,await readFile(new URL(name,import.meta.url)),type);
+    }
+    if (req.method === 'POST' && path === '/api/aurora/strips') {
+      requireInput((req.headers['content-type'] ?? '').startsWith('application/json'),'Requête JSON requise.',415);
+      const input = await readJsonBody(req,8192);
+      const callsigns = input?.callsigns;
+      requireInput(Array.isArray(callsigns) && callsigns.length <= MAX_AURORA_CALLSIGNS &&
+        callsigns.every(id => typeof id === 'string' && AURORA_CALLSIGN.test(id)),'Liste d’indicatifs Aurora invalide.');
+      requireInput(!readingAurora,'Lecture Aurora déjà en cours.',429);
+      readingAurora = true;
+      try { return json(res,200,await readAurora(callsigns)); }
+      catch { return json(res,503,{error:'Aurora est inaccessible. Vérifie que le logiciel est ouvert et que l’accès tiers est activé.'}); }
+      finally { readingAurora = false; }
     }
     if (req.method === 'GET' && path === '/api/assistant/status') return json(res,200,assistantStatus());
     if (req.method === 'GET' && path === '/api/assistant/manex') {
@@ -87,10 +106,7 @@ const server = createServer(async (req,res) => {
       requireInput(!answering,'Une réponse est déjà en cours. Réessaie dans un instant.',429);
       answering = true;
       try {
-        const bytes = await readBody(req,256 * 1024);
-        let input;
-        try { input = JSON.parse(bytes.toString('utf8')); }
-        catch { requireInput(false,'Requête JSON invalide.'); }
+        const input = await readJsonBody(req,256 * 1024);
         return json(res,200,await answerQuestion(input));
       } finally { answering = false; }
     }

@@ -21,6 +21,10 @@ npm.cmd start
 
 Sous macOS ou Linux, utilise `npm ci` puis `npm start`. Ouvre ensuite [E-Strips en local](http://127.0.0.1:4310/).
 
+## Liaison avec Aurora
+
+Lance Aurora et le serveur E-Strips sur le même ordinateur. Dans Aurora, active **Settings → Other → Software → 3rd Party Software Access**, puis clique sur **Lier Aurora** dans l’en-tête d’E-Strips. Les consignes d’altitude, de vitesse, de transpondeur, de point ou cap et de poste sont affichées sur les strips IVAO dont l’indicatif est présent dans Aurora. La liaison lit les données du radar et conserve la répartition des strips propre à E-Strips. [Documentation de l’API Aurora](https://wiki.ivao.aero/en/home/devops/manuals/Aurora-3rd-parties-documentation)
+
 ## Sauvegardes
 
 Garde la même adresse dans ton navigateur pour retrouver tes sauvegardes et ton historique. Pour transférer tes préférences vers un autre ordinateur, ouvre **Paramètres → Profil de configuration**. Le profil contient les baies, les couleurs et les réglages IVAO. L’export de session est disponible séparément pour transférer aussi les fiches et les données de l’aérodrome.

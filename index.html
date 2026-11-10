@@ -47,6 +47,7 @@ h1,h2,h3,p { margin:0 }
 .btn.primary:hover { background:#b3f0f6; color:#122530 }
 .btn.danger,.popover.menu .danger { color:var(--red) }
 .btn.square { padding:6px 8px }
+#connect-aurora[aria-pressed="true"] { color:var(--cyan); border-color:var(--cyan) }
 main { padding:0 24px 16px; max-width:2200px; margin:auto }
 .ops { display:grid; grid-template-columns:minmax(156px,1fr) minmax(190px,1.7fr) minmax(190px,1.1fr) repeat(2,minmax(86px,.54fr)); border:1px solid var(--line); border-radius:5px; background:var(--panel); margin:17px 0 13px; min-height:72px }
 .metric { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:6px; padding:9px 14px; min-width:0; border-right:1px solid var(--line) }
@@ -179,10 +180,18 @@ dialog::backdrop { background:#080e17c9 }
 .order-row .bay-name-input { flex:1; width:0 }
 .order-row .inline { flex-wrap:nowrap }
 .color-grid,.runway-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:8px }
+.runway-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,195px),1fr)) }
 .runway-card { border:1px solid var(--edge); border-radius:4px; padding:9px; background:var(--panel); min-width:0 }
 .runway-card.warn { border-color:var(--red) }
 .runway-card h3 { font:700 13px var(--mono); color:var(--cyan) }
 .runway-card p { margin:6px 0; font:11px var(--mono); overflow-wrap:anywhere }
+.runway-card .btn { min-height:27px; padding:4px 8px }
+.runway-points { display:grid; gap:5px; padding:7px 0 0; margin:8px 0 0; border-top:1px solid var(--line); list-style:none; font:11px var(--mono); overflow-wrap:anywhere }
+.runway-points small { display:block; margin-top:2px; color:var(--muted); font:inherit }
+.runway-point-fields { min-width:0; margin:8px 0; padding:8px 10px; border:1px solid var(--line); border-radius:5px }
+.runway-point-fields legend { padding-inline:4px; color:var(--muted); font:11px var(--mono) }
+.runway-point-fields .inline { justify-content:space-between; margin-top:8px }
+.runway-point-fields .inline .field { flex:1; min-width:120px }
 .table-wrap { overflow:auto; max-height:55vh; margin-top:8px }
 table { width:100%; border-collapse:collapse; font:11px var(--mono) }
 th,td { border-bottom:1px solid var(--line); text-align:left; padding:7px 6px; vertical-align:top; overflow-wrap:anywhere }
@@ -196,8 +205,8 @@ td:first-child { white-space:nowrap }
   .top { flex-wrap:wrap; padding:11px 10px }
   main { padding:0 10px 12px }
   .ops { grid-template-columns:repeat(3,1fr) }
-  .metric:first-child,.metric:nth-child(2) { grid-column:auto; grid-row:1; border-bottom:1px solid var(--line) }
-  .metric:nth-child(2) { grid-column:span 2; border-right:0 }
+  .metric:first-of-type,.metric:nth-of-type(2) { grid-column:auto; grid-row:1; border-bottom:1px solid var(--line) }
+  .metric:nth-of-type(2) { grid-column:span 2; border-right:0 }
   .ops { margin-top:10px }
   .clock { padding-left:7px; margin-left:0 }
   .board { grid-template-columns:1fr }
@@ -210,6 +219,115 @@ td:first-child { white-space:nowrap }
   .row.identity { grid-template-columns:17px minmax(61px,1.1fr) minmax(35px,.65fr) minmax(61px,1.1fr) minmax(49px,.8fr) 24px }
   .cell { padding-left:3px; padding-right:3px }
   .callsign { font-size:11px }
+}
+.top-actions { display:contents }
+.modern-only { display:none }
+.interface-choice { display:grid; gap:4px; flex:none }
+.interface-caption { color:var(--muted); font:700 10px var(--mono); letter-spacing:.08em; text-transform:uppercase }
+.interface-buttons { display:flex; gap:3px; padding:3px; background:var(--bg); border:1px solid var(--edge); border-radius:8px }
+.interface-buttons button { min-height:29px; padding:4px 9px; background:transparent; border:1px solid transparent; border-radius:5px; color:var(--muted); font:700 12px var(--mono) }
+.interface-buttons button:hover { background:var(--raised); color:var(--text) }
+.interface-buttons button[aria-pressed="true"] { background:#1d3440; border-color:#416779; color:var(--cyan) }
+
+body[data-interface="modern"] {
+  --bg:#0e1015; --panel:#15181f; --raised:#1a1e27; --strip:#1b1e28;
+  --edge:#303542; --line:#262a34; --text:#edf0f7; --muted:#a9b2c7;
+  --faint:#919db8; --cyan:#c4afff; --green:#8fe1b6;
+  --ui-font:"Segoe UI",system-ui,sans-serif;
+}
+body[data-interface="modern"] .modern-only { display:block }
+body[data-interface="modern"] .classic-only { display:none }
+body[data-interface="modern"] .top { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0; padding:0; background:#101218; border-color:var(--line) }
+body[data-interface="modern"] .brand { grid-area:1/1; margin:10px 18px; gap:10px }
+body[data-interface="modern"] .brand-copy { display:flex; flex-direction:column; gap:2px }
+body[data-interface="modern"] .brand h1 { order:-1; margin:0; font:750 18px/1.15 var(--ui-font); letter-spacing:0 }
+body[data-interface="modern"] .brand small { font:550 11px var(--ui-font); text-transform:none; letter-spacing:0 }
+body[data-interface="modern"] .brand-icon { width:36px; height:36px; background:#231b36; border-color:#493763; border-radius:10px }
+body[data-interface="modern"] .brand-icon .icon { width:20px; height:20px }
+body[data-interface="modern"] .top-right { display:contents }
+body[data-interface="modern"] .clock { grid-area:1/2; justify-self:center; margin:7px 12px; padding:5px 12px; text-align:center; column-gap:12px; border:1px solid var(--line); border-radius:13px; background:var(--raised) }
+body[data-interface="modern"] .clock-label,body[data-interface="modern"] .clock small { font-size:9px; letter-spacing:.03em }
+body[data-interface="modern"] .clock time { color:var(--text); font:750 20px/1.2 var(--ui-font); font-variant-numeric:tabular-nums }
+body[data-interface="modern"] .interface-choice { grid-area:1/3; justify-self:end; margin-inline:18px }
+body[data-interface="modern"] .interface-buttons button { font-family:var(--ui-font) }
+body[data-interface="modern"] .interface-buttons button[aria-pressed="true"] { background:#2b2144; border-color:#665098 }
+body[data-interface="modern"] .top-actions { grid-area:2/1/3/-1; display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:7px 18px; border-top:1px solid var(--line); background:var(--bg) }
+body[data-interface="modern"] .top-actions #settings { margin-inline-start:auto }
+body[data-interface="modern"] .btn { border-radius:8px; background:var(--raised); font:650 12px var(--ui-font) }
+body[data-interface="modern"] .btn:hover:not(:disabled) { background:#272339; border-color:#625283 }
+body[data-interface="modern"] .btn.primary { border-color:#665098; background:#2b2144; color:#e7dbff }
+body[data-interface="modern"] .btn.primary:hover { background:#3c2d5d }
+body[data-interface="modern"] input,body[data-interface="modern"] select,body[data-interface="modern"] textarea { border-radius:8px; background:#181b23 }
+body[data-interface="modern"] main { padding:0 16px 14px; max-width:none }
+body[data-interface="modern"] .ops { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,156px),1fr)); gap:8px; margin:12px 0; min-height:0; background:none; border:0 }
+body[data-interface="modern"] .metric { padding:10px 12px; min-height:62px; border:1px solid var(--line); border-radius:10px; background:var(--panel) }
+body[data-interface="modern"] .eyebrow,body[data-interface="modern"] .rail-title { color:var(--faint); font:700 10px var(--ui-font); letter-spacing:.08em; text-transform:uppercase }
+body[data-interface="modern"] .rail-title { margin:2px 0; grid-column:1/-1 }
+body[data-interface="modern"] .metric-value { font-family:var(--ui-font); font-variant-numeric:tabular-nums }
+body[data-interface="modern"] .rwy-chip { min-height:25px; color:var(--cyan) }
+body[data-interface="modern"] .rwy-chip.warn { color:var(--red); border-color:#925951 }
+body[data-interface="modern"] .tools { padding:10px; background:var(--panel); border-color:var(--line); border-radius:11px }
+body[data-interface="modern"] .tools .rail-title { flex:0 0 100% }
+body[data-interface="modern"] .search input { font:12px var(--ui-font) }
+body[data-interface="modern"] .board-head { gap:8px 12px; margin:12px 0 0; padding:10px 12px; border:1px solid var(--line); border-radius:11px 11px 0 0; background:var(--panel) }
+body[data-interface="modern"] .board-head h2 { font:750 15px var(--ui-font); letter-spacing:0 }
+body[data-interface="modern"] .legend { font:650 11px var(--ui-font) }
+body[data-interface="modern"] .board { grid-template-columns:repeat(auto-fit,minmax(min(100%,315px),1fr)); align-items:start; align-content:start; gap:10px; padding:10px; border:1px solid var(--line); border-top:0; border-radius:0 0 11px 11px; background:#12151b }
+body[data-interface="modern"] .bay { border-radius:9px; background:var(--panel); border-color:var(--line) }
+body[data-interface="modern"] .bay.drop { border-color:var(--cyan) }
+body[data-interface="modern"] .bay-head { background:var(--raised); border-color:var(--line) }
+body[data-interface="modern"] .bay-code { background:#261e38; border-color:#493763; border-radius:6px }
+body[data-interface="modern"] .bay-title { font:700 11px var(--ui-font); letter-spacing:.05em }
+body[data-interface="modern"] .bay-n { border-radius:20px; background:#222734 }
+body[data-interface="modern"] .stack { height:auto }
+body[data-interface="modern"] .empty { border-radius:8px }
+body[data-interface="modern"] .strip { border-radius:7px }
+body[data-interface="modern"] .strip:not(.emergency):not(.attention) { border-color:#343947; border-left-color:var(--ink) }
+body[data-interface="modern"] .strip:not(.emergency) .row.clearances { background:#171a24 }
+body[data-interface="modern"] .strip:not(.emergency) :is(.row.nav,.row.clearances,.row.note,.cell,.grip,.network-tag) { border-color:#343947 }
+body[data-interface="modern"] :is(dialog,.popover,#ai-panel) { background:var(--panel); border-color:var(--edge) }
+body[data-interface="modern"] :is(.dialog-head,.ai-message,.ai-ask) { background:var(--raised) }
+body[data-interface="modern"] .ai-message[data-role="user"] { background:#2b2144 }
+body[data-interface="modern"].ai-open .board { grid-template-columns:repeat(auto-fit,minmax(min(100%,315px),1fr)) }
+body[data-interface="modern"].ai-open .ops { grid-template-columns:repeat(auto-fit,minmax(min(100%,156px),1fr)) }
+@media(min-width:1240px) {
+  body[data-interface="modern"]:not(.ai-open) main {
+    display:grid; grid-template-columns:210px minmax(0,1fr) 236px; column-gap:12px; align-items:start; padding-top:10px;
+    grid-template-areas:"tools heading session" "tools board session" "footer footer footer";
+  }
+  body[data-interface="modern"]:not(.ai-open) main:has(#alert:not([hidden])) {
+    grid-template-areas:"tools alert session" "tools heading session" "tools board session" "footer footer footer";
+  }
+  body[data-interface="modern"]:not(.ai-open) .tools { grid-area:tools; display:grid; gap:10px }
+  body[data-interface="modern"]:not(.ai-open) .filters { display:grid; gap:6px }
+  body[data-interface="modern"]:not(.ai-open) .tools .actions,body[data-interface="modern"]:not(.ai-open) .filter-options { display:grid; gap:6px }
+  body[data-interface="modern"]:not(.ai-open) .tools :is(select,#filter-status) { width:100% }
+  body[data-interface="modern"]:not(.ai-open) .tools .btn { justify-content:flex-start }
+  body[data-interface="modern"]:not(.ai-open) .ops { grid-area:session; grid-template-columns:1fr; margin:0 }
+  body[data-interface="modern"]:not(.ai-open) #alert { grid-area:alert; margin:0 0 8px }
+  body[data-interface="modern"]:not(.ai-open) .board-head { grid-area:heading; margin:0 }
+  body[data-interface="modern"]:not(.ai-open) .board { grid-area:board; min-height:calc(100vh - 220px) }
+  body[data-interface="modern"]:not(.ai-open) .footer { grid-area:footer }
+}
+@media(max-width:760px) {
+  body[data-interface="modern"] .top { grid-template-columns:minmax(0,1fr) auto }
+  body[data-interface="modern"] .brand { margin-inline:10px }
+  body[data-interface="modern"] .brand small { font-size:10px }
+  body[data-interface="modern"] .interface-choice { grid-area:1/2; margin:6px 8px 6px 0 }
+  body[data-interface="modern"] .clock { grid-area:2/1/3/-1; margin-inline:8px; padding-inline:7px; column-gap:7px }
+  body[data-interface="modern"] .clock > div + div { padding-inline-start:7px }
+  body[data-interface="modern"] .clock time { font-size:16px }
+  body[data-interface="modern"] .top-actions { grid-row:3; padding-inline:10px }
+  body[data-interface="modern"] main { padding-inline:9px }
+  body[data-interface="modern"] .metric:nth-of-type(-n+2) { grid-area:auto }
+}
+@media(max-width:420px) {
+  body[data-interface="modern"] .brand-icon { display:none }
+  body[data-interface="modern"] .clock-label { font-size:8px }
+  body[data-interface="modern"] .board { padding:5px }
+  body[data-interface="modern"] .stack { padding:4px }
+  body[data-interface="modern"] .row.identity { grid-template-columns:17px minmax(49px,1.2fr) minmax(33px,.72fr) minmax(51px,1.1fr) minmax(49px,1fr) 24px }
+  body[data-interface="modern"] .row.nav { grid-template-columns:minmax(52px,1.1fr) minmax(30px,.6fr) minmax(44px,1.5fr) minmax(43px,.75fr) minmax(31px,.6fr) }
 }
 </style>
 <link rel="stylesheet" href="assistant.css">
@@ -230,17 +348,27 @@ td:first-child { white-space:nowrap }
 <header class="top">
   <div class="brand">
     <div class="brand-icon"><svg class="icon" aria-hidden="true"><use href="#i-board"/></svg></div>
-    <div><small>Poste de contrôle aérien · Simulation</small><h1>FICHES DE VOL ÉLECTRONIQUES</h1></div>
+    <div class="brand-copy"><small>Poste de contrôle aérien · Simulation</small><h1><span class="classic-only">FICHES DE VOL ÉLECTRONIQUES</span><span class="modern-only">E-Strips</span></h1></div>
+  </div>
+  <div id="interface-choice" class="interface-choice" role="group" aria-label="Interface">
+    <span class="interface-caption" aria-hidden="true">Interface</span>
+    <div class="interface-buttons">
+      <button type="button" data-interface-mode="classic" aria-pressed="true">Classique</button>
+      <button type="button" data-interface-mode="modern" aria-pressed="false">Moderne</button>
+    </div>
   </div>
   <div class="top-right">
-    <button id="connect-ivao" class="btn primary" type="button">CONNECTER IVAO</button>
-    <button id="take-service" class="btn">PRISE DE SERVICE</button>
-    <button id="manex" class="btn" type="button" hidden>MANEX</button>
-    <button id="ai-toggle" class="btn" type="button" aria-controls="ai-panel" aria-expanded="false">ASSISTANT ATC</button>
-    <button id="generate" class="btn">GÉNÉRER DU TRAFIC</button>
-    <button id="add-ivao" class="btn">AJOUTER IVAO</button>
-    <button id="new-flight" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> NOUVEAU VOL</button>
-    <button id="settings" class="btn square" aria-label="Paramètres" title="Paramètres"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
+    <div class="top-actions">
+      <button id="connect-ivao" class="btn primary" type="button">CONNECTER IVAO</button>
+      <button id="connect-aurora" class="btn" type="button" aria-pressed="false">LIER AURORA</button>
+      <button id="take-service" class="btn">PRISE DE SERVICE</button>
+      <button id="manex" class="btn" type="button" hidden>MANEX</button>
+      <button id="ai-toggle" class="btn" type="button" aria-controls="ai-panel" aria-expanded="false">ASSISTANT ATC</button>
+      <button id="generate" class="btn">GÉNÉRER DU TRAFIC</button>
+      <button id="add-ivao" class="btn">AJOUTER IVAO</button>
+      <button id="new-flight" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> NOUVEAU VOL</button>
+      <button id="settings" class="btn square" aria-label="Paramètres" title="Paramètres"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg></button>
+    </div>
     <div class="clock">
       <div><span class="clock-label">HEURE UTC</span><time id="utc-clock"></time><small id="utc-date"></small></div>
       <div><span class="clock-label" id="local-clock-label">HEURE LOCALE</span><time id="local-clock"></time><small id="local-date"></small></div>
@@ -249,6 +377,7 @@ td:first-child { white-space:nowrap }
 </header>
 <main>
   <section class="ops" aria-label="Données de session">
+    <h2 class="rail-title modern-only">Session active</h2>
     <div class="metric"><span id="station-caption" class="eyebrow">Aérodrome</span><div id="airport-code" class="metric-value"></div><div id="airport-name" class="airport-name"></div></div>
     <div class="metric"><span id="rwy-caption" class="eyebrow">Pistes en service</span><div id="runways-top" class="inline"></div><div id="rwy-source" class="ops-detail" hidden></div></div>
     <div class="metric"><button id="weather-details" class="weather-link" title="Météo et ATIS IVAO"><span id="weather-caption" class="eyebrow">QNH simulé</span><span id="qnh" class="metric-value"></span><span id="metar-source" class="ops-detail" hidden></span></button></div>
@@ -256,6 +385,7 @@ td:first-child { white-space:nowrap }
     <div class="metric"><span class="eyebrow">Système</span><span id="system-state" class="online mono">MODE LOCAL</span></div>
   </section>
   <section class="tools" aria-label="Recherche et outils">
+    <h2 class="rail-title modern-only">Outils de contrôle</h2>
     <div class="filters">
       <label class="search"><span class="sr-only">Rechercher un vol</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="search" type="search" placeholder="Indicatif, transpondeur, type, OACI, piste…" autocomplete="off"></label>
       <button id="filter-toggle" class="btn" aria-controls="filter-options" aria-expanded="false">FILTRES</button>
@@ -431,6 +561,7 @@ const DEFAULTS = {
   runways:['26L','26R','27L','27R'], order:Object.keys(BAYS),
   bays:Object.fromEntries(Object.entries(BAYS).map(([code,name]) => [code,{code,name}])),
   approach:{radiusNm:40,ceilingFt:12000},
+  runwayDetails:{},
   colors:{ifr:'#83d7f3',vfr:'#9ee0a7',helico:'#ffcc80',militaire:'#cfadff',selected:'#e6f4ff',attention:'#ff9b8d'}
 };
 const COLOR_LABELS = {ifr:'IFR',vfr:'VFR',helico:'Hélicoptère',militaire:'Militaire',selected:'Sélection',attention:'Attention'};
@@ -438,6 +569,7 @@ const STORAGE_KEY = 'atc-efs-workstation.v1';
 const BAY_LAYOUT_KEY = STORAGE_KEY + '.bays';
 const PROFILE_FORMAT = 'efs-profile';
 const RUNWAY = /^(0[1-9]|[12][0-9]|3[0-6])[LCR]?$/;
+const MAX_HOLDING_POINTS = 50;
 const IVAO_STATION = /^[A-Z]{4}(?:_[A-Z0-9]{1,12}){1,4}$/;
 const FLIGHT_RULES = {IFR:'IFR',VFR:'VFR',Y:'Y · IFR puis VFR',Z:'Z · VFR puis IFR'};
 const NETWORK_PHASES = {
@@ -565,7 +697,8 @@ function decodeBayLayout(raw,fallbackColors = DEFAULTS.colors) {
     const value = raw.colors?.[key];
     return [key,typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : fallbackColors[key]];
   }));
-  return {bays,order:[...raw.order],redirects,trafficBays,colors};
+  const interfaceMode = raw.interfaceMode === 'modern' ? 'modern' : 'classic';
+  return {bays,order:[...raw.order],redirects,trafficBays,colors,interfaceMode};
 }
 function addDefaultBays(layout) {
   const previousSize = layout.order.length;
@@ -599,7 +732,7 @@ function saveBayLayout(settings,transfers = new Map(),trafficBays = sharedBayLay
     const previous = sharedBayLayout.bays[id];
     if (previous) redirects[id] = {code:previous.code,destination};
   }
-  const layout = decodeBayLayout({bays,order,redirects,trafficBays,colors});
+  const layout = decodeBayLayout({bays,order,redirects,trafficBays,colors,interfaceMode:sharedBayLayout.interfaceMode});
   addDefaultBays(layout);
   persistBayLayout(layout);
 }
@@ -648,6 +781,29 @@ function normalizeApproach(raw) {
   validate(Number.isInteger(ceilingFt) && ceilingFt >= 1000 && ceilingFt <= 35000,'Plafond d’approche : 1 000 à 35 000 ft.');
   return {radiusNm,ceilingFt};
 }
+function normalizeRunwayDetails(raw = {}) {
+  validate(raw && typeof raw === 'object' && !Array.isArray(raw) && Object.keys(raw).length <= 150,'Détails de pistes invalides.');
+  return Object.fromEntries(Object.entries(raw).map(([id,detail]) => {
+    validate(RUNWAY.test(id) && detail && typeof detail === 'object','Désignation de piste invalide.');
+    const {length = null,heading = null,surface = '',points = []} = detail;
+    validate(length === null || (Number.isInteger(length) && length >= 1 && length <= 20000),'Piste ' + id + ' · longueur de 1 à 20 000 m.');
+    validate(heading === null || (Number.isFinite(heading) && heading >= 0 && heading <= 360),'Piste ' + id + ' · orientation vraie de 0 à 360°.');
+    validate(typeof surface === 'string' && surface.length <= 80,'Piste ' + id + ' · surface limitée à 80 caractères.');
+    validate(Array.isArray(points) && points.length <= MAX_HOLDING_POINTS,'Piste ' + id + ' · liste de points d’attente invalide.');
+    const names = new Set();
+    const normalized = points.map(point => {
+      const name = typeof point?.name === 'string' ? upper(point.name) : '';
+      const distance = point?.distance;
+      const note = point?.note ?? '';
+      validate(name.length >= 1 && name.length <= 20 && !names.has(name),'Piste ' + id + ' · chaque point doit avoir un nom distinct de 1 à 20 caractères.');
+      validate(Number.isInteger(distance) && distance >= 0 && distance <= (length ?? 20000),name + ' · distance restante invalide.');
+      validate(typeof note === 'string' && note.length <= 120,name + ' · note limitée à 120 caractères.');
+      names.add(name);
+      return {name,distance,note:note.trim()};
+    });
+    return [id,{length,heading,surface:surface.trim(),points:normalized}];
+  }));
+}
 function normalizeSettings(raw) {
   const airport = upper(raw.airport);
   const airportName = String(raw.airportName ?? '').trim();
@@ -661,6 +817,7 @@ function normalizeSettings(raw) {
     Object.entries(DEFAULTS.bays).filter(([id]) => order?.includes(id))
   ),order);
   const approach = normalizeApproach(raw.approach);
+  const runwayDetails = normalizeRunwayDetails(raw.runwayDetails);
   const palette = {};
   for (const key of Object.keys(COLOR_LABELS)) {
     const legacy = key === 'ifr' ? colors?.arr : key === 'helico' ? colors?.dep : undefined;
@@ -675,10 +832,10 @@ function normalizeSettings(raw) {
     validate(manexUrl.length <= 2048 && url?.protocol === 'https:' && !url.username && !url.password,
       'Le lien MANEX doit être une adresse HTTPS valide.');
   }
-  return {airport,airportName,qnh,runways:[...runways],order:[...order],bays,colors:palette,manexUrl,approach};
+  return {airport,airportName,qnh,runways:[...runways],order:[...order],bays,colors:palette,manexUrl,approach,runwayDetails};
 }
-function sessionParameters({airport,airportName,qnh,runways,manexUrl,approach}) {
-  return {airport,airportName,qnh,runways,manexUrl,approach};
+function sessionParameters({airport,airportName,qnh,runways,manexUrl,approach,runwayDetails}) {
+  return {airport,airportName,qnh,runways,manexUrl,approach,runwayDetails};
 }
 function sessionParametersKey(db) {
   return profileKey(db) + '.settings';
@@ -688,7 +845,8 @@ function restoreSessionParameters(db) {
     const serialized = localStorage.getItem(sessionParametersKey(db));
     if (!serialized) return;
     const parameters = sessionParameters(JSON.parse(serialized));
-    const saved = normalizeSettings({...db.settings,...parameters,approach:parameters.approach ?? db.settings.approach});
+    const saved = normalizeSettings({...db.settings,...parameters,approach:parameters.approach ?? db.settings.approach,
+      runwayDetails:parameters.runwayDetails ?? db.settings.runwayDetails});
     if (db.service && saved.airport !== db.settings.airport) return;
     db.settings = saved;
   } catch { /* La sauvegarde du tableau fournit les paramètres de secours. */ }
@@ -938,7 +1096,8 @@ function conflicts() {
   return [...bySurface.values()].filter(group => group.length > 1);
 }
 function configuredRunways() {
-  return [...new Set([...activeRunways(),...serviceRunways(),...state.flights.filter(isActiveFlight).map(f => f.runway).filter(Boolean)])].sort();
+  return [...new Set([...activeRunways(),...serviceRunways(),...Object.keys(state.settings.runwayDetails),
+    ...state.flights.filter(isActiveFlight).map(f => f.runway).filter(Boolean)])].sort();
 }
 function statusOptions(values,value) {
   return values.map(key => option(key,STATUS[key][1],value)).join('');
@@ -950,6 +1109,11 @@ function cell(key,value,display,label,vertical = false) {
     '" data-field="' + key + '" title="' + esc(title) + '" aria-label="' + esc(title) + '">' +
     '<small>' + esc(caption) + '</small><b>' + esc(display || '—') + '</b></button>';
 }
+function auroraCell(caption,value,vertical = false) {
+  const display = value || '—';
+  return '<div class="cell assigned' + (vertical ? ' vertical' : '') + '" title="' + esc('Aurora · ' + caption + ' · ' + display) +
+    '"><small>' + esc(caption) + '</small><b>' + esc(display) + '</b></div>';
+}
 function altitudeTitle(f) {
   const label = f.ivao ? 'Altitude observée IVAO' : 'Altitude ou niveau actuel';
   const time = f.ivao?.altitudeAt;
@@ -958,6 +1122,8 @@ function altitudeTitle(f) {
 function stripAlert(f) {
   const observed = f.ivao?.observedSquawk;
   const codes = f.ivao && !f.ivao.locked.includes('squawk') ? [observed || f.squawk] : [f.squawk,observed];
+  const aurora = auroraRecord(f);
+  if (aurora) codes.push(aurora.observedSquawk,aurora.squawk);
   const messages = [...new Set(codes)].filter(code => Object.hasOwn(EMERGENCY_CODES,code))
     .map(code => code + ' · ' + EMERGENCY_CODES[code]);
   if (f.attention) messages.push('SIGNALEMENT CONTRÔLEUR');
@@ -977,16 +1143,21 @@ function strip(f,hasConflict) {
   const category = flightColorCategory(f);
   const type = category.toLowerCase();
   const current = f.current || '—';
+  const aurora = auroraRecord(f);
+  const auroraSquawk = aurora?.squawk || aurora?.observedSquawk;
   const statusClass = RWY_OCCUPIED.includes(f.status) ? ' occupied' : RWY_CLEARANCE.includes(f.status) ? ' clearance' : '';
   const supplementary = [
     category && (f.colorCategory || category !== f.rules) &&
       '<button type="button" class="cell category-tag" data-field="colorCategory" title="Modifier la catégorie de couleur">' +
       esc(FLIGHT_CATEGORIES[category].toUpperCase()) + '</button>',
-    f.heading && cell('heading',f.heading,f.heading + '°','CAP'),
+    f.heading && !aurora?.waypoint && cell('heading',f.heading,f.heading + '°','CAP'),
     f.frequency && cell('frequency',f.frequency,f.frequency,'TRANSFERT'),
     f.remarks && cell('remarks',f.remarks,f.remarks,'REM.'),
+    aurora?.waypoint && auroraCell('POINT / CAP',aurora.waypoint),
+    aurora?.gate && auroraCell('POSTE',aurora.gate),
     f.ivao && '<button type="button" class="cell network-tag' + (f.ivao.absent ? ' lost' : '') +
-      '" data-flight title="Afficher le suivi IVAO">' + (f.ivao.absent ? 'IVAO · SIGNAL PERDU' : 'IVAO') + '</button>'
+      '" data-flight title="' + (aurora ? 'Consignes lues dans Aurora' : 'Afficher le suivi IVAO') + '">' +
+      (f.ivao.absent ? 'IVAO · SIGNAL PERDU' : aurora ? 'IVAO · AURORA' : 'IVAO') + '</button>'
   ].filter(Boolean).join('');
   return '<article aria-label="Fiche de vol ' + esc(f.callsign) + '" class="strip ' + type +
     (selectedId === f.id ? ' selected' : '') + (attention ? ' attention' : '') + (alert ? ' emergency' : '') +
@@ -1003,7 +1174,8 @@ function strip(f,hasConflict) {
       '" aria-label="' + esc(STATUS[f.status][1]) + '"><b>' + STATUS[f.status][2] + '</b></button>' +
       '<button class="more" type="button" data-menu aria-label="Actions ' + f.callsign + '" aria-haspopup="true">' + icon('more') + '</button>' +
     '</div><div class="row nav">' +
-      cell('squawk',f.squawk,f.squawk,'TRANSPONDEUR',true) + cell('runway',f.runway,f.runway,'PISTE',true) +
+      (auroraSquawk ? auroraCell('TRANSPONDEUR',auroraSquawk,true) : cell('squawk',f.squawk,f.squawk,'TRANSPONDEUR',true)) +
+      cell('runway',f.runway,f.runway,'PISTE',true) +
       cell('route',f.route,f.route,'ROUTE',true) +
       '<div class="cell vertical" title="' + (f.flow === 'ARR' ? 'Arrivée estimée' : 'Départ estimé') + ' UTC"><small>' +
       (f.flow === 'ARR' ? 'ARR. EST.' : 'DÉP. EST.') + '</small><b>' + (f.estimate || '—') + '</b></div>' +
@@ -1011,8 +1183,8 @@ function strip(f,hasConflict) {
     '</div><div class="row clearances">' +
       '<div class="cell vertical" data-observed-altitude title="' + esc(altitudeTitle(f)) + '"><small>' +
       (f.ivao ? 'ACTUEL · IVAO' : 'ACTUEL') + '</small><b>' + current + '</b></div>' +
-      cell('assigned',f.assigned,f.assigned,'ALT. ASSIGNÉE',true) +
-      cell('speed',f.speed,f.speed && f.speed + ' KT','VIT. ASSIGNÉE',true) +
+      (aurora ? auroraCell('ALT. ASSIGNÉE',aurora.assigned,true) : cell('assigned',f.assigned,f.assigned,'ALT. ASSIGNÉE',true)) +
+      (aurora ? auroraCell('VIT. ASSIGNÉE',aurora.speed,true) : cell('speed',f.speed,f.speed && f.speed + ' KT','VIT. ASSIGNÉE',true)) +
     '</div>' + (supplementary ? '<div class="row note">' + supplementary + '</div>' : '') + '</article>';
 }
 function filterFlights(flights) {
@@ -1093,7 +1265,15 @@ function renderOps() {
     runwayTop.innerHTML = markup;
   }
 }
+function renderInterface() {
+  const mode = sharedBayLayout.interfaceMode;
+  document.body.dataset.interface = mode;
+  for (const button of $('interface-choice').querySelectorAll('button')) {
+    button.setAttribute('aria-pressed',String(button.dataset.interfaceMode === mode));
+  }
+}
 function render() {
+  renderInterface();
   const config = state.settings;
   Object.entries(config.colors).forEach(([key,value]) => document.documentElement.style.setProperty('--' + key,value));
   $('flight-count').textContent = String(state.flights.filter(isActiveFlight).length).padStart(2,'0');
@@ -1513,6 +1693,12 @@ function archiveDialog() {
     } catch (error) { body.querySelector('.error').textContent = error.message; }
   });
 }
+function runwayData(runway) {
+  const published = state.service?.ends.find(end => end.id === runway);
+  const custom = state.settings.runwayDetails[runway];
+  return {id:runway,length:custom?.length ?? published?.length ?? 0,heading:custom?.heading ?? published?.heading ?? null,
+    surface:custom?.surface || published?.surface || '',points:custom?.points ?? []};
+}
 function runwayDialog(focusRunway) {
   const warnings = new Set(conflicts().map(group => runwayKey(group[0].runway)));
   const list = configuredRunways();
@@ -1532,13 +1718,19 @@ function runwayDialog(focusRunway) {
       (flights.map(f => f.callsign + (withStatus ? ' (' + STATUS[f.status][2] + ')' : '')).join(' · ') || '—') + '</p>';
     const inUse = active.includes(runway);
     const published = serviceRunways().includes(runway);
-    const end = state.service?.ends.find(item => item.id === runway);
+    const end = runwayData(runway);
+    const details = [end.length ? end.length.toLocaleString('fr-FR') + ' m' : '',
+      end.heading == null ? '' : end.heading.toLocaleString('fr-FR') + '° vrai',end.surface].filter(Boolean);
+    const points = end.points.length ? '<ul class="runway-points" aria-label="Points d’attente de la piste ' + runway + '">' +
+      end.points.map(({name,distance,note}) => '<li><strong>' + esc(name) + '</strong> · ' + distance.toLocaleString('fr-FR') + ' m restants' +
+        (note ? '<small>' + esc(note) + '</small>' : '') + '</li>').join('') + '</ul>' : '';
     const use = declared ? [declared.arrivals.includes(runway) ? 'ARR' : '',declared.departures.includes(runway) ? 'DEP' : ''].filter(Boolean).join(' / ') : '';
     return '<section class="runway-card' + (warnings.has(runwayKey(runway)) ? ' warn' : '') +
       '" data-detail="' + runway + '"><h3>PISTE ' + runway + '</h3><p class="muted">' + (inUse ? 'EN SERVICE' + (use ? ' · ' + use : '') : published ? 'RÉPERTORIÉE' : 'HORS CONFIGURATION') + '</p>' +
-      (end ? '<p class="muted">' + (end.length ? end.length + ' m' : '—') + (end.heading == null ? '' : ' · ' + Math.round(end.heading) + '°T') +
-        (end.surface ? ' · ' + esc(end.surface) : '') + '</p>' : '') +
-      line('Point d’attente',atHold) + line('Sur piste (statut saisi)',occupied,true) + line('Clairance piste',cleared,true) +
+      (details.length ? '<p class="muted">' + esc(details.join(' · ')) + '</p>' : '') +
+      (state.settings.runwayDetails[runway] ? '<p class="muted">Configuration locale</p>' : '') +
+      '<button class="btn" type="button" data-edit-runway="' + runway + '" aria-label="Modifier la piste ' + runway + '">MODIFIER</button>' + points +
+      line('Vols au point d’attente',atHold) + line('Sur piste (statut saisi)',occupied,true) + line('Clairance piste',cleared,true) +
       line('Atterris',landed) + line('Décollés',airborne) + line('Autres assignations',assigned) + '</section>';
   }).join('');
   const unassigned = activeFlights.filter(f => !f.runway);
@@ -1555,6 +1747,7 @@ function runwayDialog(focusRunway) {
     '<div class="subsection"><h3>CHRONOLOGIE DES MOUVEMENTS</h3>' +
     table(['Horodatage UTC','Piste','Indicatif','Mouvement / clairance'],rows,'Aucun mouvement enregistré.') + '</div>');
   $('runway-settings').onclick = () => settingsDialog(true);
+  body.querySelectorAll('[data-edit-runway]').forEach(button => button.onclick = () => runwayEditor(button.dataset.editRunway));
   const fields = body.querySelector('form').elements;
   fields.flight.onchange = () => fields.runway.value = activeFlight(fields.flight.value)?.runway ?? '';
   onForm(body,(_form,values) => {
@@ -1568,6 +1761,64 @@ function runwayDialog(focusRunway) {
       card.focus();
     }
   }
+}
+function runwayEditor(runway) {
+  const airport = state.settings.airport;
+  const published = state.service?.ends.find(end => end.id === runway);
+  const detail = state.settings.runwayDetails[runway] ?? {length:null,heading:null,surface:'',points:[]};
+  const pointFields = ({name = '',distance = '',note = ''} = {}) => '<fieldset class="runway-point-fields"><legend>Point d’attente</legend>' +
+    '<div class="settings-grid"><label class="field">Nom du point<input name="pointName" maxlength="20" required value="' + esc(name) + '"></label>' +
+    '<label class="field">Distance restante · m<input name="pointDistance" type="number" min="0" max="20000" required value="' + distance + '"></label></div>' +
+    '<div class="inline"><label class="field">Note facultative<input name="pointNote" maxlength="120" value="' + esc(note) + '"></label>' +
+    '<button class="btn danger" type="button" data-remove-point>RETIRER LE POINT</button></div></fieldset>';
+  const body = showDialog('MODIFIER LA PISTE ' + runway,
+    '<form><div class="settings-grid"><label class="field">Longueur · m<input name="length" type="number" min="1" max="20000" value="' +
+    (detail.length ?? '') + '" placeholder="' + (published?.length || 'Non répertoriée') + '"></label>' +
+    '<label class="field">Orientation vraie · °<input name="heading" type="number" min="0" max="360" step="any" value="' +
+    (detail.heading ?? '') + '" placeholder="' + (published?.heading ?? 'Non répertoriée') + '"></label>' +
+    '<label class="field">Surface<input name="surface" maxlength="80" value="' + esc(detail.surface) +
+    '" placeholder="' + esc(published?.surface || 'Non répertoriée') + '"></label></div>' +
+    '<p class="help">Laisse un champ vide pour reprendre la valeur du catalogue. Les modifications et les distances saisies sont propres à ' + airport +
+    ' et au sens ' + runway + '.</p><div class="subsection"><h3>POINTS D’ATTENTE</h3>' +
+    '<p class="help">Renseigne la distance de piste restante en mètres pour chaque point. Valeurs locales pour la simulation.</p>' +
+    '<div id="runway-point-list">' + detail.points.map(pointFields).join('') + '</div>' +
+    '<button class="btn" id="add-runway-point" type="button">AJOUTER UN POINT D’ATTENTE</button></div>' + dialogActions() + '</form>');
+  const list = $('runway-point-list');
+  const add = $('add-runway-point');
+  add.disabled = list.childElementCount >= MAX_HOLDING_POINTS;
+  add.onclick = () => {
+    list.insertAdjacentHTML('beforeend',pointFields());
+    add.disabled = list.childElementCount >= MAX_HOLDING_POINTS;
+    list.lastElementChild.querySelector('input').focus();
+  };
+  list.onclick = event => {
+    const remove = event.target.closest('[data-remove-point]');
+    if (!remove) return;
+    remove.closest('fieldset').remove();
+    add.disabled = false;
+    add.focus();
+  };
+  const back = body.querySelector('[data-close]');
+  back.removeAttribute('data-close');
+  back.onclick = () => runwayDialog(runway);
+  onForm(body,(_form,values) => {
+    validate(state.settings.airport === airport,'L’aéroport actif a changé. Rouvre la gestion des pistes.');
+    const number = key => values.get(key) === '' ? null : Number(values.get(key));
+    const distances = values.getAll('pointDistance');
+    const notes = values.getAll('pointNote');
+    const points = values.getAll('pointName').map((name,index) => ({name,distance:Number(distances[index]),note:notes[index]}));
+    const runwayDetails = normalizeRunwayDetails({...state.settings.runwayDetails,
+      [runway]:{length:number('length'),heading:number('heading'),surface:values.get('surface'),points}});
+    const updated = runwayDetails[runway];
+    const length = updated.length ?? published?.length;
+    const oversized = length && updated.points.find(point => point.distance > length);
+    validate(!oversized,'La distance de ' + oversized?.name + ' dépasse la longueur de la piste (' + length + ' m).');
+    if (updated.length === null && updated.heading === null && !updated.surface && !updated.points.length) delete runwayDetails[runway];
+    state.settings = {...state.settings,runwayDetails};
+    log('SYSTÈME','Configuration de la piste ' + runway,'—',points.length + ' point(s) d’attente');
+    commit(true);
+    runwayDialog(runway);
+  });
 }
 function splitRunways(value) { return upper(value).split(/[\s,;/]+/).filter(Boolean); }
 function bayVisibilityDialog() {
@@ -1742,6 +1993,7 @@ function settingsDialog(fromRunways = false) {
       airport:values.get('airport'),airportName:values.get('airportName'),qnh:values.get('qnh') ?? s.qnh,
       runways:splitRunways(values.get('runways')),order,bays,manexUrl:values.get('manexUrl') ?? s.manexUrl,
       approach:{radiusNm:values.get('approachRadius'),ceilingFt:values.get('approachCeiling')},
+      runwayDetails:upper(values.get('airport')) === s.airport ? s.runwayDetails : {},
       colors:Object.fromEntries(Object.keys(COLOR_LABELS).map(key => [key,values.get('color-' + key)]))
     });
     const orderChanged = String(s.order) !== String(changed.order);
@@ -1832,6 +2084,9 @@ function decodeProfile(raw) {
   validate(Object.keys(COLOR_LABELS).every(key => raw.layout.colors?.[key] === layout.colors[key]),'Couleurs du profil invalides.');
   validate(Object.keys(FLOW_LABELS).every(flow => raw.layout.trafficBays?.[flow] === layout.trafficBays[flow]),'Répartition IVAO du profil invalide.');
   validate(Object.keys(raw.layout.redirects ?? {}).length === Object.keys(layout.redirects).length,'Redirections de baies du profil invalides.');
+  const interfaceMode = raw.layout.interfaceMode;
+  validate(interfaceMode === undefined || ['classic','modern'].includes(interfaceMode),'Interface du profil invalide.');
+  if (interfaceMode === undefined) layout.interfaceMode = sharedBayLayout.interfaceMode;
   validate(Number.isInteger(raw.approach?.radiusNm) && Number.isInteger(raw.approach?.ceilingFt),'Seuils d’approche du profil manquants ou invalides.');
   const approach = normalizeApproach(raw.approach);
   addDefaultBays(layout);
@@ -1865,7 +2120,7 @@ $('profile-file').addEventListener('change',async event => {
   try {
     const profile = decodeProfile(await readJson(file));
     confirmDialog('IMPORTER LE PROFIL',
-      'Appliquer les baies et les couleurs du fichier ' + file.name + ' à tous les aéroports ? Les seuils d’approche s’appliqueront à ' +
+      'Appliquer les baies, les couleurs et l’interface du fichier ' + file.name + ' à tous les aéroports ? Les seuils d’approche s’appliqueront à ' +
       state.settings.airport + '. Les fiches existantes seront conservées et réparties dans les baies du profil.',() => {
         applyProfile(profile);
         toast('Profil importé.');
@@ -1910,6 +2165,64 @@ const networkCache = new Map();
 const profiles = new Map();
 const airportClocks = new Map();
 let feeds = {weather:{},tracker:{}};
+let auroraLink = {enabled:false,records:new Map()};
+const AURORA_HELP = {
+  server:'Redémarre E-Strips avec « Lancer E-Strips.cmd » ou npm start, puis ouvre la page locale du lanceur.',
+  aurora:'Vérifie qu’Aurora est ouvert sur ce PC et que « 3rd Party Software Access » est activé.'
+};
+
+function auroraRecord(flight) {
+  if (auroraLink.airport !== state.settings.airport) return undefined;
+  const record = auroraLink.records.get(flight.id);
+  return record?.callsign === flight.callsign ? record : undefined;
+}
+function renderAuroraControl() {
+  const {enabled,connected,error,station,records} = auroraLink;
+  const button = $('connect-aurora');
+  button.setAttribute('aria-pressed',String(enabled));
+  button.textContent = !enabled ? 'LIER AURORA' : connected ? 'AURORA · LIÉ' :
+    error === 'aurora' ? 'AURORA · INDISPONIBLE' : error === 'server' ? 'AURORA · SERVEUR À VÉRIFIER' : 'AURORA · CONNEXION';
+  button.title = !enabled ? 'Afficher sur les strips IVAO les consignes lues dans Aurora' : connected ?
+    (station ? station + ' · ' : '') + records.size + ' strip(s) suivi(s) · Cliquer pour délier' :
+    error ? AURORA_HELP[error] + ' Cliquer pour délier.' : 'Connexion locale à Aurora en cours.';
+}
+function flushAurora() {
+  if (!auroraLink.redraw || drag || !$('popover').hidden || $('dialog').open) return;
+  auroraLink.redraw = false;
+  renderBoard();
+}
+async function refreshAurora() {
+  const link = auroraLink;
+  if (!link.enabled || link.pending) return;
+  const session = state;
+  const airport = state.settings.airport;
+  const requested = new Map(state.flights.filter(f => f.ivao && isActiveFlight(f)).slice(0,200).map(f => [f.callsign,f.id]));
+  link.pending = true;
+  let snapshot;
+  let error = 'server';
+  try {
+    const response = await fetch('/api/aurora/strips',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({callsigns:[...requested.keys()]}),signal:AbortSignal.timeout(6500)});
+    if (response.status === 429) return;
+    if (response.status === 503) error = 'aurora';
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data?.strips)) {
+        snapshot = data;
+        error = '';
+      }
+    }
+  } catch { /* La liaison sera réessayée au prochain passage. */ }
+  finally { link.pending = false; }
+  if (link !== auroraLink || session !== state || airport !== state.settings.airport) return;
+  const records = (snapshot?.strips ?? []).filter(item => requested.has(item.callsign)).map(item => [requested.get(item.callsign),item]);
+  const signature = JSON.stringify(records);
+  if (airport !== link.airport || signature !== link.signature) link.redraw = true;
+  if (error && error !== link.error) toast(AURORA_HELP[error]);
+  Object.assign(link,{airport,signature,records:new Map(records),error,connected:Boolean(snapshot),station:snapshot?.station});
+  renderAuroraControl();
+  flushAurora();
+}
 
 function request(url,type,ttl,force = false) {
   const cached = networkCache.get(url);
@@ -2817,6 +3130,13 @@ $('filter-toggle').onclick = () => {
   if (!options.hidden) $('filter-rules').focus();
 };
 $('filter-clear').onclick = () => { clearFilters(); renderBoard(); };
+$('interface-choice').onclick = event => {
+  const interfaceMode = event.target.closest('[data-interface-mode]')?.dataset.interfaceMode;
+  if (!interfaceMode || interfaceMode === sharedBayLayout.interfaceMode) return;
+  try { persistBayLayout({...sharedBayLayout,interfaceMode}); }
+  catch (error) { toast(error.message); }
+  renderInterface();
+};
 for (const id of filterIds) {
   $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {
     closePopover();
@@ -2831,6 +3151,16 @@ $('generate').onclick = generateTraffic;
 $('settings').onclick = () => settingsDialog();
 $('bay-visibility').onclick = bayVisibilityDialog;
 $('connect-ivao').onclick = connectIvao;
+$('connect-aurora').onclick = () => {
+  if (location.protocol !== 'http:' || !['127.0.0.1','localhost'].includes(location.hostname)) {
+    toast(AURORA_HELP.server);
+    return;
+  }
+  auroraLink = {enabled:!auroraLink.enabled,records:new Map(),redraw:true};
+  renderAuroraControl();
+  flushAurora();
+  refreshAurora();
+};
 $('manex').onclick = openManex;
 $('take-service').onclick = takeServiceDialog;
 $('weather-details').onclick = weatherDialog;
@@ -2883,16 +3213,19 @@ function clock() {
   local.title = timeZone || 'Fuseau horaire indisponible';
   $('local-date').textContent = parts ? [parts.day,parts.month,parts.year].join('/') : '';
   flushNetwork();
+  flushAurora();
 }
 window.efsAssistantContext = (includeBoard = false) => {
   const {airport,airportName,bays,manexUrl} = state.settings;
   const selected = activeFlight(selectedId);
-  const describe = flight => ({
-    callsign:flight.callsign,aircraft:flight.aircraft,wake:flight.wake,origin:flight.origin,destination:flight.destination,
-    rules:flight.rules,flow:flight.flow,bay:bays[flight.bay]?.code,bayName:bays[flight.bay]?.name,
-    status:STATUS[flight.status][1],runway:flight.runway,current:flight.current,assigned:flight.assigned,squawk:flight.squawk,
-    etaEtdUtc:flight.estimate,ivao:Boolean(flight.ivao),signalLost:Boolean(flight.ivao?.absent)
-  });
+  const describe = flight => {
+    const aurora = auroraRecord(flight);
+    return {callsign:flight.callsign,aircraft:flight.aircraft,wake:flight.wake,origin:flight.origin,destination:flight.destination,
+      rules:flight.rules,flow:flight.flow,bay:bays[flight.bay]?.code,bayName:bays[flight.bay]?.name,
+      status:STATUS[flight.status][1],runway:flight.runway,current:flight.current,assigned:aurora?.assigned ?? flight.assigned,
+      squawk:aurora?.squawk || aurora?.observedSquawk || flight.squawk,etaEtdUtc:flight.estimate,
+      ivao:Boolean(flight.ivao),aurora:Boolean(aurora),signalLost:Boolean(flight.ivao?.absent)};
+  };
   const weather = freshWeather();
   const flights = includeBoard ? state.flights.filter(isActiveFlight) : null;
   return {airport,airportName,manexUrl:manexUrl || MANEX_URLS.get(airport) || '',
@@ -2900,7 +3233,8 @@ window.efsAssistantContext = (includeBoard = false) => {
     activeRunways:activeRunways(),runwaySource:$('rwy-source').hidden ? 'Configuration de simulation' : $('rwy-source').textContent,
     runwayCatalogue:state.service?.ends.map(({id,length,heading,surface}) => ({id,lengthM:length,headingTrue:heading,surface})) ?? [],
     weather:weather ? {source:'METAR IVAO',raw:weather.raw,at:new Date(weather.at).toISOString()} : null,
-    selected:selected ? {...describe(selected),route:selected.route,assignedSpeed:selected.speed,assignedHeading:selected.heading,
+    selected:selected ? {...describe(selected),route:selected.route,assignedSpeed:auroraRecord(selected)?.speed ?? selected.speed,
+      assignedHeading:selected.heading,auroraWaypoint:auroraRecord(selected)?.waypoint,
       assignedTransferFrequency:selected.frequency} : null,
     board:flights?.slice(0,300).map(describe) ?? null,totalFlights:flights?.length ?? null};
 };
@@ -2909,8 +3243,8 @@ window.addEventListener('storage',event => {
   let layout;
   try { layout = decodeBayLayout(JSON.parse(event.newValue)); }
   catch { return; }
-  const withoutVisibility = (key,value) => key === 'hidden' ? undefined : value;
-  const displayOnly = JSON.stringify(layout,withoutVisibility) === JSON.stringify(sharedBayLayout,withoutVisibility);
+  const withoutDisplay = (key,value) => key === 'hidden' || key === 'interfaceMode' ? undefined : value;
+  const displayOnly = JSON.stringify(layout,withoutDisplay) === JSON.stringify(sharedBayLayout,withoutDisplay);
   sharedBayLayout = layout;
   if (displayOnly) state.settings.bays = copy(layout.bays);
   else applyBayLayout(state,layout);
@@ -2919,6 +3253,7 @@ window.addEventListener('storage',event => {
 clock();
 setInterval(clock,1000);
 setInterval(() => refreshService(),5000);
+setInterval(refreshAurora,3000);
 render();
 ensureAirportReference();
 refreshService();
