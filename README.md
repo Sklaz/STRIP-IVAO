@@ -37,7 +37,9 @@ Pour une release qui verrouille les pièces jointes dès sa publication, génèr
 
 ## Liaison avec Aurora
 
-Lance Aurora et le serveur E-Strips sur le même ordinateur. Dans Aurora, active **Settings → Other → Software → 3rd Party Software Access**, puis clique sur **Lier Aurora** dans l’en-tête d’E-Strips. Les consignes d’altitude, de vitesse, de transpondeur, de point ou cap et de poste sont affichées sur les strips IVAO dont l’indicatif est présent dans Aurora. La liaison lit les données du radar et conserve la répartition des strips propre à E-Strips. [Documentation de l’API Aurora](https://wiki.ivao.aero/en/home/devops/manuals/Aurora-3rd-parties-documentation)
+Dans Aurora, active **Settings → Other → Software → 3rd Party Software Access**. Clique sur **Lier Aurora** dans E-Strips. Si Aurora répond sur le même ordinateur, la liaison se fait automatiquement. Sinon, E-Strips propose de saisir l’adresse IPv4 privée du PC Aurora et préremplit la dernière adresse distante utilisée. Sous Windows, lance `ipconfig` sur le PC Aurora et lis l’adresse IPv4 de la carte Wi-Fi. Le pare-feu de ce PC doit autoriser les connexions entrantes sur le port TCP 1130 depuis le réseau local. [Documentation de l’API Aurora](https://wiki.ivao.aero/en/home/devops/manuals/Aurora-3rd-parties-documentation)
+
+Les consignes d’altitude, de vitesse, de transpondeur, de point ou cap et de poste sont affichées sur les strips IVAO dont l’indicatif est présent dans Aurora. La liaison lit les données du radar et conserve la répartition des strips propre à E-Strips.
 
 ## Sauvegardes
 

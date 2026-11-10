@@ -2166,10 +2166,36 @@ const profiles = new Map();
 const airportClocks = new Map();
 let feeds = {weather:{},tracker:{}};
 let auroraLink = {enabled:false,records:new Map()};
+const AURORA_HOST_KEY = STORAGE_KEY + '.auroraHost';
+const LOCAL_AURORA_HOST = '127.0.0.1';
 const AURORA_HELP = {
   server:'Redémarre E-Strips avec « Lancer E-Strips.cmd » ou npm start, puis ouvre la page locale du lanceur.',
-  aurora:'Vérifie qu’Aurora est ouvert sur ce PC et que « 3rd Party Software Access » est activé.'
+  aurora:'Vérifie l’adresse du PC Aurora, l’option « 3rd Party Software Access » et l’accès au port TCP 1130 sur le Wi-Fi.',
+  address:'Saisis l’adresse IPv4 privée du PC Aurora.'
 };
+
+function auroraConnectionDialog() {
+  let previousHost;
+  try { previousHost = localStorage.getItem(AURORA_HOST_KEY); } catch { /* Le stockage est facultatif. */ }
+  const body = showDialog('LIER AURORA',
+    '<form><label class="field">Adresse IPv4 du PC Aurora<input name="host" maxlength="15" autocomplete="off" spellcheck="false" required ' +
+    'placeholder="Ex. 192.168.1.42" value="' + esc(previousHost && previousHost !== LOCAL_AURORA_HOST ? previousHost : '') + '"></label>' +
+    '<p class="help">Aurora ne répond pas sur ce PC. S’il tourne sur un autre PC du même Wi-Fi, saisis son adresse IPv4. Sur Windows, elle s’affiche dans la section Wi-Fi de la commande ipconfig.</p>' +
+    dialogActions('CONNECTER') + '</form>');
+  onForm(body,(_form,values) => {
+    const host = String(values.get('host')).trim();
+    validate(host,'Saisis l’adresse IPv4 du PC Aurora.');
+    closeDialog();
+    startAuroraLink(host);
+  });
+}
+
+function startAuroraLink(host,detectingLocal = false) {
+  auroraLink = {enabled:true,host,detectingLocal,records:new Map(),redraw:true};
+  renderAuroraControl();
+  flushAurora();
+  refreshAurora();
+}
 
 function auroraRecord(flight) {
   if (auroraLink.airport !== state.settings.airport) return undefined;
@@ -2177,14 +2203,15 @@ function auroraRecord(flight) {
   return record?.callsign === flight.callsign ? record : undefined;
 }
 function renderAuroraControl() {
-  const {enabled,connected,error,station,records} = auroraLink;
+  const {enabled,connected,error,station,host,records,detectingLocal} = auroraLink;
   const button = $('connect-aurora');
   button.setAttribute('aria-pressed',String(enabled));
   button.textContent = !enabled ? 'LIER AURORA' : connected ? 'AURORA · LIÉ' :
-    error === 'aurora' ? 'AURORA · INDISPONIBLE' : error === 'server' ? 'AURORA · SERVEUR À VÉRIFIER' : 'AURORA · CONNEXION';
+    error === 'aurora' ? 'AURORA · INDISPONIBLE' : error === 'server' ? 'AURORA · SERVEUR À VÉRIFIER' :
+    detectingLocal ? 'AURORA · DÉTECTION' : 'AURORA · CONNEXION';
   button.title = !enabled ? 'Afficher sur les strips IVAO les consignes lues dans Aurora' : connected ?
-    (station ? station + ' · ' : '') + records.size + ' strip(s) suivi(s) · Cliquer pour délier' :
-    error ? AURORA_HELP[error] + ' Cliquer pour délier.' : 'Connexion locale à Aurora en cours.';
+    (station ? station + ' · ' : '') + (host !== LOCAL_AURORA_HOST ? host + ' · ' : '') + records.size + ' strip(s) suivi(s) · Cliquer pour délier' :
+    error ? AURORA_HELP[error] + ' Cliquer pour délier.' : 'Connexion à Aurora en cours.';
 }
 function flushAurora() {
   if (!auroraLink.redraw || drag || !$('popover').hidden || $('dialog').open) return;
@@ -2196,15 +2223,18 @@ async function refreshAurora() {
   if (!link.enabled || link.pending) return;
   const session = state;
   const airport = state.settings.airport;
-  const requested = new Map(state.flights.filter(f => f.ivao && isActiveFlight(f)).slice(0,200).map(f => [f.callsign,f.id]));
+  const detectingLocal = link.detectingLocal;
+  const requested = new Map(detectingLocal ? [] :
+    state.flights.filter(f => f.ivao && isActiveFlight(f)).slice(0,200).map(f => [f.callsign,f.id]));
   link.pending = true;
   let snapshot;
   let error = 'server';
   try {
     const response = await fetch('/api/aurora/strips',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({callsigns:[...requested.keys()]}),signal:AbortSignal.timeout(6500)});
+      body:JSON.stringify({callsigns:[...requested.keys()],host:link.host}),signal:AbortSignal.timeout(6500)});
     if (response.status === 429) return;
     if (response.status === 503) error = 'aurora';
+    if (response.status === 422) error = 'address';
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data?.strips)) {
@@ -2215,6 +2245,19 @@ async function refreshAurora() {
   } catch { /* La liaison sera réessayée au prochain passage. */ }
   finally { link.pending = false; }
   if (link !== auroraLink || session !== state || airport !== state.settings.airport) return;
+  if (detectingLocal && error === 'aurora') {
+    link.enabled = false;
+    renderAuroraControl();
+    if ($('dialog').open) toast('Aurora ne répond pas sur ce PC. Clique de nouveau sur « Lier Aurora » pour saisir son adresse.');
+    else auroraConnectionDialog();
+    return;
+  }
+  if (snapshot) link.detectingLocal = false;
+  if (error === 'address') link.enabled = false;
+  if (link.host !== LOCAL_AURORA_HOST && (snapshot || error === 'aurora') && !link.hostSaved) {
+    try { localStorage.setItem(AURORA_HOST_KEY,link.host); } catch { /* La liaison reste active. */ }
+    link.hostSaved = true;
+  }
   const records = (snapshot?.strips ?? []).filter(item => requested.has(item.callsign)).map(item => [requested.get(item.callsign),item]);
   const signature = JSON.stringify(records);
   if (airport !== link.airport || signature !== link.signature) link.redraw = true;
@@ -2222,6 +2265,7 @@ async function refreshAurora() {
   Object.assign(link,{airport,signature,records:new Map(records),error,connected:Boolean(snapshot),station:snapshot?.station});
   renderAuroraControl();
   flushAurora();
+  if (detectingLocal && snapshot && state.flights.some(f => f.ivao && isActiveFlight(f))) refreshAurora();
 }
 
 function request(url,type,ttl,force = false) {
@@ -3156,10 +3200,13 @@ $('connect-aurora').onclick = () => {
     toast(AURORA_HELP.server);
     return;
   }
-  auroraLink = {enabled:!auroraLink.enabled,records:new Map(),redraw:true};
+  if (!auroraLink.enabled) {
+    startAuroraLink(LOCAL_AURORA_HOST,true);
+    return;
+  }
+  auroraLink = {enabled:false,host:auroraLink.host,records:new Map(),redraw:true};
   renderAuroraControl();
   flushAurora();
-  refreshAurora();
 };
 $('manex').onclick = openManex;
 $('take-service').onclick = takeServiceDialog;

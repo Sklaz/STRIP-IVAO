@@ -1,10 +1,18 @@
-import { createConnection } from 'node:net';
+import { createConnection, isIPv4 } from 'node:net';
 import { createInterface } from 'node:readline';
 
 export const AURORA_CALLSIGN = /^[A-Z0-9]{2,7}$/;
 export const MAX_AURORA_CALLSIGNS = 200;
+export const LOCAL_AURORA_HOST = '127.0.0.1';
 const SQUAWK = /^[0-7]{4}$/;
 const ALTITUDE_LABELS = new Map([['-1','APP'],['-2','LND'],['-3','GA']]);
+
+export function isAuroraHost(host) {
+  if (typeof host !== 'string' || !isIPv4(host)) return false;
+  const [first,second] = host.split('.').map(Number);
+  return host === LOCAL_AURORA_HOST || first === 10 || (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168);
+}
 
 function label(value) {
   const text = value?.trim() ?? '';
@@ -20,8 +28,8 @@ function readPosition(fields) {
     speed:label(speed),gate:label(fields[22])};
 }
 
-export async function readAurora(callsigns,port = 1130) {
-  const socket = createConnection({host:'127.0.0.1',port});
+export async function readAurora(callsigns,port = 1130,host = LOCAL_AURORA_HOST) {
+  const socket = createConnection({host,port});
   socket.setEncoding('utf8');
   const lines = createInterface({input:socket,crlfDelay:Infinity});
   const responses = lines[Symbol.asyncIterator]();

@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { answerQuestion, assistantStatus } from './assistant-model.mjs';
 import { documentSummary, ICAO, importDocument, listDocuments, MAX_DOCUMENT, readDocument, requireInput } from './assistant-docs.mjs';
 import { loadManex } from './assistant-manex.mjs';
-import { AURORA_CALLSIGN, MAX_AURORA_CALLSIGNS, readAurora } from './aurora.mjs';
+import { AURORA_CALLSIGN, MAX_AURORA_CALLSIGNS, LOCAL_AURORA_HOST, isAuroraHost, readAurora } from './aurora.mjs';
 
 const port = Number(process.env.PORT || 4310);
 if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('PORT invalide.');
@@ -65,10 +65,12 @@ const server = createServer(async (req,res) => {
       const callsigns = input?.callsigns;
       requireInput(Array.isArray(callsigns) && callsigns.length <= MAX_AURORA_CALLSIGNS &&
         callsigns.every(id => typeof id === 'string' && AURORA_CALLSIGN.test(id)),'Liste d’indicatifs Aurora invalide.');
+      const auroraHost = input.host === undefined ? LOCAL_AURORA_HOST : input.host;
+      requireInput(isAuroraHost(auroraHost),'Saisis l’adresse IPv4 privée du PC Aurora.',422);
       requireInput(!readingAurora,'Lecture Aurora déjà en cours.',429);
       readingAurora = true;
-      try { return json(res,200,await readAurora(callsigns)); }
-      catch { return json(res,503,{error:'Aurora est inaccessible. Vérifie que le logiciel est ouvert et que l’accès tiers est activé.'}); }
+      try { return json(res,200,await readAurora(callsigns,undefined,auroraHost)); }
+      catch { return json(res,503,{error:'Aurora est inaccessible à l’adresse choisie. Vérifie que le logiciel est ouvert et que l’accès tiers est activé.'}); }
       finally { readingAurora = false; }
     }
     if (req.method === 'GET' && path === '/api/assistant/status') return json(res,200,assistantStatus());
